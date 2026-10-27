@@ -50,39 +50,44 @@ gh repo create cardapio-feed --private --source=. --remote=origin --push
 
 Escolha a plataforma de sua preferência para rodar o Node.js:
 
-### Opção 1: Render (Recomendado para Testes e Produção)
-O [Render](https://render.com) possui conexão direta com o GitHub e suporta discos persistentes.
+### Opção 1: Render (Teste Rápido Gratuito ou Produção Paga)
+O [Render](https://render.com) possui conexão direta com o GitHub.
 
+> [!NOTE]
+> **Sobre o Plano Free do Render:**
+> O plano gratuito do Render **não inclui Persistent Disks** (discos persistentes exigem plano pago a partir de ~$7/mês).
+> - **Para TESTES GRATUITOS:** Você pode fazer o deploy sem adicionar nenhum disco! A aplicação funcionará normalmente gravando no disco temporário local. Se o serviço suspender por inatividade (após 15 min), ao acordar ele recarrega o cardápio padrão de demonstração (`dono@kutsakai.mz` / `kutsakai123`).
+> - **Para PRODUÇÃO:** É necessário ativar um plano pago (Starter) e adicionar o Persistent Disk para que os pedidos e fotos nunca se percam.
+
+#### Passos no Render:
 1. Crie uma conta no [Render](https://render.com) e conecte sua conta GitHub.
 2. Clique em **New +** → **Web Service**.
 3. Selecione o repositório `cardapio-feed`.
 4. Configure os campos:
    - **Name:** `cardapio-feed` (ou o nome que preferir).
-   - **Environment:** `Node` (ou `Docker` usando o `Dockerfile` do projeto).
+   - **Environment:** `Node`.
    - **Branch:** `main`.
-   - **Build Command:** *(deixe em branco ou `echo "Sem build necessário"`)*.
+   - **Build Command:** *(deixe em branco ou `echo "OK"`)*.
    - **Start Command:** `node backend/server.js`.
+   - **Instance Type:** `Free` (para testes) ou `Starter` (para produção com disco).
 5. **Variáveis de Ambiente (Environment Variables):**
-   - `PORT`: `3001` *(ou a porta padrão informada pelo Render, o servidor já detecta `process.env.PORT`)*
-   - `DEMO_MODE`: `off` *(ou `on` se quiser dados de exemplo durante os testes)*
-   - `TRUST_PROXY`: `1` *(obrigatório para que o IP do cliente passe corretamente pelo Cloudflare/Render)*
-   - `TZ_OFFSET_MIN`: `120` *(para fuso horário de Moçambique UTC+2, ou ajuste conforme sua região)*
-   - `DATA_DIR`: `/data`
-6. **Disco Persistente (Disks) — CRÍTICO:**
-   - Vá na seção **Disks** do serviço no Render.
-   - Adicione um disco:
-     - **Name:** `cardapio-dados`
-     - **Mount Path:** `/data`
-     - **Size:** `1 GB` (suficiente para testes; expanda conforme necessário).
-7. Clique em **Deploy Web Service**. O Render gerará uma URL como `cardapio-feed.onrender.com`.
+   - `DEMO_MODE`: `on` *(recomendado no plano Free para ter o restaurante de exemplo sempre pronto)* ou `off`
+   - `TRUST_PROXY`: `1` *(obrigatório atrás do Cloudflare/Render)*
+   - `TZ_OFFSET_MIN`: `120` *(fuso horário de Moçambique UTC+2)*
+   - *(Apenas se contratou plano pago com disco: defina `DATA_DIR=/data` e adicione o Disk montado em `/data`)*.
+6. Clique em **Deploy Web Service**. O Render gerará uma URL como `https://cardapio-feed.onrender.com`.
 
 ---
 
-### Opção 2: Railway ou Fly.io
-1. Conecte o repositório GitHub.
-2. Como o projeto já possui um [Dockerfile](file:///c:/Users/maneb/Desktop/cardapio-feed/Dockerfile), a plataforma detectará e fará o build automaticamente.
-3. Crie um **Volume** montado em `/data` e defina `DATA_DIR=/data`.
-4. Defina as variáveis `TRUST_PROXY=1`, `DEMO_MODE=off`, `TZ_OFFSET_MIN=120`.
+### Opção 2: Plataformas Gratuitas com Persistência (Fly.io ou Cloudflare Tunnel)
+
+Se você quer persistência real sem pagar nada durante os testes:
+
+- **A. Cloudflare Tunnel (100% Gratuito no seu PC ou Mini-PC):**
+  Roda no seu computador via `iniciar.bat` e expõe com HTTPS e domínio pelo Cloudflare. Seus dados e fotos ficam salvos no seu próprio disco rígido e **nunca são apagados**. Veja a seção 5 abaixo.
+- **B. Fly.io (Com Volume Gratuito):**
+  O Fly.io inclui até 3 GB de volumes montados gratuitos. O projeto já tem o [Dockerfile](file:///c:/Users/maneb/Desktop/cardapio-feed/Dockerfile) pronto: basta instalar o `flyctl` e rodar `fly launch` criando um volume persistente.
+
 
 ---
 
