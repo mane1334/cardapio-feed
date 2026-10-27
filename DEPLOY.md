@@ -79,9 +79,51 @@ O [Render](https://render.com) possui conexão direta com o GitHub.
 
 ---
 
-### Opção 2: Plataformas Gratuitas com Persistência (Fly.io ou Cloudflare Tunnel)
+### Opção 2: Render Free + Cloudflare R2 (100% Gratuito com Persistência Total)
 
-Se você quer persistência real sem pagar nada durante os testes:
+Esta é a melhor combinação para **não pagar nada**: use o plano gratuito do Render e o **Cloudflare R2** para armazenar as fotos e o banco de dados.
+
+#### 1. Criar o Bucket no Cloudflare:
+1. No painel do [Cloudflare](https://dash.cloudflare.com/), clique em **R2 Object Storage**.
+2. Clique em **Create bucket**:
+   - Nome: `cardapio-feed` (ou outro nome de sua escolha).
+   - Localização: **Automatic**.
+3. Ative o acesso público (para que as fotos abram nos aparelhos dos clientes):
+   - No bucket criado, vá na aba **Settings**.
+   - Em **Public Access**, ative a opção **R2.dev subdomain** (ou conecte um domínio próprio como `media.seudominio.com`). Copie a URL pública gerada (ex: `https://pub-xxxxxxxx.r2.dev`).
+4. Crie as credenciais de acesso:
+   - Volte para a página principal do R2 e clique em **Manage R2 API Tokens** (no lado direito).
+   - Clique em **Create API Token**.
+   - Permissão: **Object Read & Write**.
+   - Aplique ao bucket `cardapio-feed`.
+   - Clique em **Create API Token**.
+   - Guarde os valores exibidos:
+     - **Access Key ID**
+     - **Secret Access Key**
+     - **Account ID** (aparece na URL do Endpoint: `https://<ACCOUNT_ID>.r2.cloudflaredstorage.com`).
+
+#### 2. Configurar as Variáveis no Render:
+No seu Web Service no Render, vá em **Environment** e adicione:
+- `R2_ACCOUNT_ID`: seu Account ID da Cloudflare
+- `R2_ACCESS_KEY_ID`: sua Access Key ID
+- `R2_SECRET_ACCESS_KEY`: sua Secret Access Key
+- `R2_BUCKET`: `cardapio-feed`
+- `R2_PUBLIC_URL`: sua URL pública (ex: `https://pub-xxxxxxxx.r2.dev`)
+- `DEMO_MODE`: `off`
+- `TRUST_PROXY`: `1`
+- `TZ_OFFSET_MIN`: `120`
+
+> [!TIP]
+> Com essas variáveis configuradas:
+> - Toda foto e vídeo de prato vai direto para o Cloudflare R2 e é entregue via CDN global gratuita.
+> - O arquivo `db.json` é sincronizado automaticamente para o R2 a cada alteração.
+> - Se o Render reiniciar após inatividade, ele baixa o `db.json` do R2 ao iniciar e **nenhum restaurante, pedido ou prato se perde**!
+
+---
+
+### Opção 3: Plataformas Gratuitas Alternativas (Fly.io ou Cloudflare Tunnel)
+
+Se você quer testar sem nuvem:
 
 - **A. Cloudflare Tunnel (100% Gratuito no seu PC ou Mini-PC):**
   Roda no seu computador via `iniciar.bat` e expõe com HTTPS e domínio pelo Cloudflare. Seus dados e fotos ficam salvos no seu próprio disco rígido e **nunca são apagados**. Veja a seção 5 abaixo.

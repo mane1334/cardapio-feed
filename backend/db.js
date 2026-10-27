@@ -18,11 +18,12 @@ const EMPTY = () => ({
 });
 
 class DB {
-  constructor(file, backupDir) {
+  constructor(file, backupDir, opts = {}) {
     this.file = file;
     this.backupDir = backupDir;
     this.timer = null;
     this.lastBackupDay = null;
+    this.onSave = opts.onSave || null;
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.mkdirSync(backupDir, { recursive: true });
     this.data = this.load();
@@ -58,9 +59,13 @@ class DB {
       this.timer = null;
     }
     const tmp = `${this.file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(this.data));
+    const str = JSON.stringify(this.data);
+    fs.writeFileSync(tmp, str);
     fs.renameSync(tmp, this.file);
     this.dailyBackup();
+    if (this.onSave) {
+      try { this.onSave(str, this.data); } catch (_) {}
+    }
   }
 
   dailyBackup() {

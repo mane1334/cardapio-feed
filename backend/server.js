@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
 const { DB } = require("./db");
+const { R2Client } = require("./r2");
 const U = require("./util");
 
 const { HttpError } = U;
@@ -35,7 +36,21 @@ function createApp(opts = {}) {
   cfg.mediaDir = path.join(cfg.dataDir, "media");
   fs.mkdirSync(cfg.mediaDir, { recursive: true });
 
-  const db = new DB(path.join(cfg.dataDir, "db.json"), path.join(cfg.dataDir, "backups"));
+  const r2 = opts.r2 || new R2Client();
+  let r2SyncTimer = null;
+  const db = new DB(path.join(cfg.dataDir, "db.json"), path.join(cfg.dataDir, "backups"), {
+    onSave(str) {
+      if (!r2.isConfigured()) return;
+      if (r2SyncTimer) clearTimeout(r2SyncTimer);
+      r2SyncTimer = setTimeout(() => {
+        r2SyncTimer = null;
+        r2.putObject("data/db.json", str, "application/json").catch((err) => {
+          console.warn("[r2] Erro ao sincronizar db.json para o R2:", err.message);
+        });
+      }, 500);
+      if (r2SyncTimer.unref) r2SyncTimer.unref();
+    }
+  });
   const D = db.data;
 
   const seedMenu = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "seed-menu.json"), "utf8"));
@@ -332,7 +347,18 @@ function createApp(opts = {}) {
     fs.mkdirSync(dir, { recursive: true });
     const name = `${U.id(8)}.${type.ext}`;
     fs.writeFileSync(path.join(dir, name), buf);
-    return { status: 201, body: { url: `/media/${restaurant.id}/${name}`, bytes: buf.length } };
+
+    let url = `/media/${restaurant.id}/${name}`;
+    if (r2.isConfigured()) {
+      const r2Key = `media/${restaurant.id}/${name}`;
+      try {
+        await r2.putObject(r2Key, buf, type.mime);
+        if (r2.publicUrl) url = `${r2.publicUrl}/${r2Key}`;
+      } catch (err) {
+        console.warn("[r2] Falha no upload para R2, fallback local:", err.message);
+      }
+    }
+    return { status: 201, body: { url, bytes: buf.length } };
   });
 
   /* tracking público */
@@ -586,9 +612,29 @@ function createApp(opts = {}) {
 
   function serveStatic(req, res, pathname) {
     if (pathname.startsWith("/media/")) {
-      const file = path.join(cfg.mediaDir, path.normalize(decodeURIComponent(pathname.slice(7))));
+      const rel = path.normalize(decodeURIComponent(pathname.slice(7)));
+      const file = path.join(cfg.mediaDir, rel);
       if (!inside(cfg.mediaDir, file)) return notFound(res);
-      return sendFile(req, res, file, { "Cache-Control": "public, max-age=2592000, immutable" });
+      if (fs.existsSync(file)) {
+        return sendFile(req, res, file, { "Cache-Control": "public, max-age=2592000, immutable" });
+      }
+      if (r2.isConfigured()) {
+        const cleanKey = `media/${rel.replace(/\\/g, "/")}`;
+        if (r2.publicUrl) {
+          res.writeHead(302, { Location: `${r2.publicUrl}/${cleanKey}` });
+          return res.end();
+        }
+        r2.getObject(cleanKey).then((buf) => {
+          if (!buf) return notFound(res);
+          try {
+            fs.mkdirSync(path.dirname(file), { recursive: true });
+            fs.writeFileSync(file, buf);
+          } catch (_) {}
+          sendFile(req, res, file, { "Cache-Control": "public, max-age=2592000, immutable" });
+        }).catch(() => notFound(res));
+        return;
+      }
+      return notFound(res);
     }
     let rel = pathname;
     if (rel === "/" || /^\/r\/[^/]+\/?$/.test(rel)) rel = "/index.html";
@@ -674,7 +720,7 @@ function createApp(opts = {}) {
   }
 
   return {
-    server, db, cfg,
+    server, db, cfg, r2,
     close() {
       clearInterval(metricsTimer); clearInterval(maint);
       for (const set of streams.values()) for (const res of set) res.end();
@@ -689,13 +735,34 @@ module.exports = { createApp, THEMES };
 if (require.main === module) {
   const port = Number(process.argv[2] || process.env.PORT || 3001);
   const host = process.env.HOST || "0.0.0.0";
-  const app = createApp();
-  app.server.listen(port, host, () => {
-    console.log(`Cardápio em Feed a correr em http://localhost:${port}`);
-    if (app.cfg.demo) console.log("Modo demonstração: dono@kutsakai.mz / kutsakai123  (desliga com DEMO_MODE=off)");
-    console.log(`Dados em ${app.cfg.dataDir}`);
-  });
-  const stop = () => { app.db.flush(); process.exit(0); };
-  process.on("SIGINT", stop);
-  process.on("SIGTERM", stop);
+  (async () => {
+    const dataDir = path.resolve(process.env.DATA_DIR || path.join(ROOT, "storage"));
+    const dbFile = path.join(dataDir, "db.json");
+    const r2 = new R2Client();
+    if (r2.isConfigured() && !fs.existsSync(dbFile)) {
+      console.log("[r2] A verificar backup do banco de dados no Cloudflare R2...");
+      try {
+        const remoteData = await r2.getObject("data/db.json");
+        if (remoteData && remoteData.length) {
+          fs.mkdirSync(dataDir, { recursive: true });
+          fs.writeFileSync(dbFile, remoteData);
+          console.log(`[r2] Banco restaurado do R2 com sucesso (${remoteData.length} bytes).`);
+        }
+      } catch (err) {
+        console.warn("[r2] Não foi possível restaurar do R2:", err.message);
+      }
+    }
+    const app = createApp({ r2 });
+    app.server.listen(port, host, () => {
+      console.log(`Cardápio em Feed a correr em http://localhost:${port}`);
+      if (app.cfg.demo) console.log("Modo demonstração: dono@kutsakai.mz / kutsakai123  (desliga com DEMO_MODE=off)");
+      console.log(`Dados em ${app.cfg.dataDir}`);
+      if (r2.isConfigured()) {
+        console.log(`Cloudflare R2 ativo! Bucket: ${r2.bucket}`);
+      }
+    });
+    const stop = () => { app.db.flush(); process.exit(0); };
+    process.on("SIGINT", stop);
+    process.on("SIGTERM", stop);
+  })();
 }
