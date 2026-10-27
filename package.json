@@ -1,0 +1,13 @@
+{
+  "name": "cardapio-feed",
+  "version": "1.0.0",
+  "description": "Cardápio digital em feed (foto e vídeo por prato), pedidos em tempo real e painel do dono.",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "LOG_REQUESTS=1 node backend/server.js 3001",
+    "test": "node --test"
+  }
+}

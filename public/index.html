@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt" data-theme="noite">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <meta name="description" content="Cardápio digital: desliza, escolhe e pede.">
+  <title>Cardápio</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/themes.css">
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <div class="brand"><span id="brandName"></span><small id="mesaLabel"></small></div>
+      <button id="infoBtn" class="round" type="button" aria-label="Informações e os meus pedidos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.500v.01"/></svg>
+      </button>
+    </div>
+    <nav class="chips" id="chips" aria-label="Categorias"></nav>
+  </header>
+
+  <main id="feed" class="feed" tabindex="-1" aria-live="polite"></main>
+
+  <button id="trayBar" class="traybar" type="button" hidden></button>
+  <div id="sheetRoot"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <noscript><p class="msg">Ativa o JavaScript para ver o cardápio.</p></noscript>
+  <script src="/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{$DOMAIN} {
+	encode gzip zstd
+	# SSE (pedidos em tempo real) não pode ficar em buffer
+	reverse_proxy app:3001 {
+		flush_interval -1
+	}
+}

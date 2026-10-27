@@ -1,0 +1,97 @@
+/* 5 temas do cardápio. O restaurante escolhe um no painel (Aparência).
+ * Todos usam as mesmas variáveis, por isso é fácil acrescentar um sexto tema.
+ * Pré-visualização: /r/<slug>?theme=creme
+ */
+
+/* ===== 1. NOITE — cinematográfico, escuro, serifa itálica ===== */
+:root, [data-theme="noite"] {
+  --media-tint: transparent;
+  --bg: #0b0b0b; --fg: #f6f1ea; --muted: rgba(246,241,234,.7);
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --display-style: italic; --display-weight: 600; --display-case: none; --display-tracking: -.01em; --name-size: clamp(2rem, 9vw, 2.6rem);
+  --accent: #ff7a3d; --accent-ink: #1a0c04;
+  --on-media: #fff; --top-shade: rgba(0,0,0,.65); --shade: rgba(0,0,0,.85);
+  --glass: rgba(20,20,20,.55); --glass-line: rgba(246,241,234,.28); --glass-fg: #f6f1ea;
+  --chip-on-bg: #f6f1ea; --chip-on-fg: #111;
+  --pill: 999px; --card-radius: 14px; --tray-radius: 18px;
+  --info-bg: transparent; --info-fg: #f6f1ea; --info-muted: rgba(246,241,234,.78);
+  --info-margin: 0; --info-gap: 0px; --info-pad: 0 16px 28px; --info-radius: 0; --info-border: 0 solid transparent; --info-blur: none;
+  --price-bg: rgba(20,20,20,.55); --price-fg: #f6f1ea; --tag-bg: rgba(246,241,234,.18); --tag-fg: #f6f1ea;
+  --sheet-bg: #151413; --sheet-fg: #f6f1ea; --sheet-muted: rgba(246,241,234,.62); --sheet-line: rgba(246,241,234,.14);
+}
+
+/* ===== 2. CREME — editorial claro, cartão creme sobre a foto ===== */
+[data-theme="creme"] {
+  --media-tint: rgba(255,236,190,.22);
+  --bg: #f4ecdc; --fg: #17301f; --muted: rgba(23,48,31,.65);
+  --display: Georgia, "Times New Roman", serif;
+  --display-style: normal; --display-weight: 700; --display-case: none; --display-tracking: -.015em; --name-size: clamp(1.7rem, 7.4vw, 2.1rem);
+  --accent: #1f5b3a; --accent-ink: #f6f1e6;
+  --on-media: #fff; --top-shade: rgba(0,0,0,.5); --shade: rgba(0,0,0,.4);
+  --glass: rgba(251,246,234,.86); --glass-line: rgba(23,48,31,.16); --glass-fg: #17301f;
+  --chip-on-bg: #17301f; --chip-on-fg: #fbf6ea;
+  --pill: 999px; --card-radius: 16px; --tray-radius: 20px;
+  --info-bg: #fbf6ea; --info-fg: #17301f; --info-muted: rgba(23,48,31,.7);
+  --info-margin: 0 12px; --info-gap: 12px; --info-pad: 18px; --info-radius: 26px; --info-border: 1px solid rgba(23,48,31,.08); --info-blur: none;
+  --price-bg: #efe5cf; --price-fg: #17301f; --tag-bg: #e8dfc9; --tag-fg: #17301f;
+  --sheet-bg: #fbf6ea; --sheet-fg: #17301f; --sheet-muted: rgba(23,48,31,.62); --sheet-line: rgba(23,48,31,.14);
+}
+[data-theme="creme"] .act { color: #17301f; }
+
+/* ===== 3. FLORESTA — verde profundo, vidro e verde-lima ===== */
+[data-theme="floresta"] {
+  --media-tint: rgba(8,70,34,.55);
+  --bg: #08140d; --fg: #eaf5e4; --muted: rgba(234,245,228,.68);
+  --body: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+  --display: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, sans-serif;
+  --display-style: normal; --display-weight: 800; --display-case: none; --display-tracking: -.02em; --name-size: clamp(1.7rem, 7.6vw, 2.15rem);
+  --accent: #b7f34a; --accent-ink: #0b1a07;
+  --on-media: #fff; --top-shade: rgba(2,12,6,.7); --shade: rgba(2,12,6,.6);
+  --glass: rgba(10,28,18,.55); --glass-line: rgba(183,243,74,.3); --glass-fg: #eaf5e4;
+  --chip-on-bg: #b7f34a; --chip-on-fg: #0b1a07;
+  --pill: 999px; --card-radius: 18px; --tray-radius: 24px;
+  --info-bg: rgba(10,28,18,.62); --info-fg: #eaf5e4; --info-muted: rgba(234,245,228,.76);
+  --info-margin: 0 12px; --info-gap: 12px; --info-pad: 18px; --info-radius: 28px; --info-border: 1px solid rgba(183,243,74,.22); --info-blur: blur(18px);
+  --price-bg: rgba(183,243,74,.14); --price-fg: #b7f34a; --tag-bg: rgba(234,245,228,.14); --tag-fg: #eaf5e4;
+  --sheet-bg: #0e2316; --sheet-fg: #eaf5e4; --sheet-muted: rgba(234,245,228,.6); --sheet-line: rgba(234,245,228,.14);
+}
+
+/* ===== 4. BRASA — ousado, vermelho e amarelo, letras grandes ===== */
+[data-theme="brasa"] {
+  --media-tint: rgba(190,20,0,.32);
+  --bg: #140605; --fg: #fff3e8; --muted: rgba(255,243,232,.7);
+  --body: "Helvetica Neue", Arial, system-ui, sans-serif;
+  --display: Impact, "Haettenschweiler", "Arial Narrow Bold", "Arial Black", sans-serif;
+  --display-style: normal; --display-weight: 900; --display-case: uppercase; --display-tracking: .01em; --name-size: clamp(2rem, 9.6vw, 2.6rem);
+  --accent: #ffcf1f; --accent-ink: #1c0a00;
+  --on-media: #fff; --top-shade: rgba(20,6,5,.75); --shade: rgba(20,6,5,.55);
+  --glass: rgba(20,6,5,.62); --glass-line: rgba(255,243,232,.35); --glass-fg: #fff3e8;
+  --chip-on-bg: #ffcf1f; --chip-on-fg: #1c0a00;
+  --pill: 6px; --card-radius: 6px; --tray-radius: 8px;
+  --info-bg: #c8321d; --info-fg: #fff3e8; --info-muted: rgba(255,243,232,.9);
+  --info-margin: 0; --info-gap: 0px; --info-pad: 20px 18px 26px; --info-radius: 0; --info-border: 0 solid transparent; --info-blur: none;
+  --price-bg: rgba(0,0,0,.28); --price-fg: #fff3e8; --tag-bg: rgba(0,0,0,.3); --tag-fg: #fff3e8;
+  --sheet-bg: #1c0a07; --sheet-fg: #fff3e8; --sheet-muted: rgba(255,243,232,.62); --sheet-line: rgba(255,243,232,.16);
+}
+[data-theme="brasa"] .info { border-top: 5px solid var(--accent); }
+[data-theme="brasa"] .desc { font-size: .95rem; }
+[data-theme="brasa"] .act .ico { background: rgba(0,0,0,.28); }
+
+/* ===== 5. OCEANO — azul profundo, vidro e turquesa ===== */
+[data-theme="oceano"] {
+  --media-tint: rgba(0,70,130,.55);
+  --bg: #06121f; --fg: #e8f4ff; --muted: rgba(232,244,255,.66);
+  --body: "Avenir Next", "Gill Sans", "Trebuchet MS", system-ui, sans-serif;
+  --display: "Avenir Next", "Gill Sans", "Trebuchet MS", system-ui, sans-serif;
+  --display-style: normal; --display-weight: 600; --display-case: none; --display-tracking: -.005em; --name-size: clamp(1.65rem, 7.2vw, 2rem);
+  --accent: #2de2c4; --accent-ink: #04211c;
+  --on-media: #fff; --top-shade: rgba(3,12,22,.7); --shade: rgba(3,12,22,.55);
+  --glass: rgba(8,28,48,.5); --glass-line: rgba(232,244,255,.22); --glass-fg: #e8f4ff;
+  --chip-on-bg: #e8f4ff; --chip-on-fg: #06121f;
+  --pill: 999px; --card-radius: 14px; --tray-radius: 16px;
+  --info-bg: linear-gradient(160deg, rgba(10,40,66,.7), rgba(6,20,36,.7)); --info-fg: #e8f4ff; --info-muted: rgba(232,244,255,.76);
+  --info-margin: 0 14px; --info-gap: 14px; --info-pad: 18px; --info-radius: 20px; --info-border: 1px solid rgba(232,244,255,.18); --info-blur: blur(22px) saturate(1.3);
+  --price-bg: rgba(45,226,196,.14); --price-fg: #2de2c4; --tag-bg: rgba(232,244,255,.14); --tag-fg: #e8f4ff;
+  --sheet-bg: #0a2036; --sheet-fg: #e8f4ff; --sheet-muted: rgba(232,244,255,.6); --sheet-line: rgba(232,244,255,.14);
+}

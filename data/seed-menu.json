@@ -1,0 +1,192 @@
+{
+  "categories": [
+    {
+      "id": "focaccias",
+      "label": "Focaccias"
+    },
+    {
+      "id": "especiais",
+      "label": "Especiais"
+    },
+    {
+      "id": "cafes",
+      "label": "Cafés"
+    },
+    {
+      "id": "frias",
+      "label": "Bebidas frias"
+    },
+    {
+      "id": "doces",
+      "label": "Doces"
+    }
+  ],
+  "dishes": [
+    {
+      "id": "focaccia-porco",
+      "category": "focaccias",
+      "name": "Pulled Pork Barbecue",
+      "description": "Porco desfiado em molho barbecue, stracciatella, pickles e rúcula.",
+      "price": 450,
+      "bestSeller": true,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [
+        "carne"
+      ],
+      "emoji": "🥪",
+      "colors": [
+        "#5a1f1a",
+        "#c4501f"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    },
+    {
+      "id": "focaccia-frango",
+      "category": "focaccias",
+      "name": "Frango, Pesto e Tomate",
+      "description": "Frango grelhado, pesto de manjericão, tomate assado e queijo fresco.",
+      "price": 400,
+      "bestSeller": false,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [
+        "carne"
+      ],
+      "emoji": "🥬",
+      "colors": [
+        "#1e3a26",
+        "#7aa04c"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    },
+    {
+      "id": "focaccia-vegetariana",
+      "category": "focaccias",
+      "name": "Vegetariana da Casa",
+      "description": "Abobrinha grelhada, pimento, queijo de cabra e mel de laranja.",
+      "price": 380,
+      "bestSeller": false,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [
+        "vegetariano"
+      ],
+      "emoji": "🫑",
+      "colors": [
+        "#3b2a14",
+        "#d39a2e"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    },
+    {
+      "id": "especial-ovos",
+      "category": "especiais",
+      "name": "Ovos Mexidos com Piri-Piri",
+      "description": "Ovos cremosos, pão torrado e piri-piri caseiro. Só ao pequeno-almoço.",
+      "price": 320,
+      "bestSeller": true,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [
+        "picante"
+      ],
+      "emoji": "🍳",
+      "colors": [
+        "#4a2e0a",
+        "#e0a526"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    },
+    {
+      "id": "cafe-flat-white",
+      "category": "cafes",
+      "name": "Flat White",
+      "description": "Duplo espresso com leite vaporizado, textura de seda.",
+      "price": 160,
+      "bestSeller": false,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [],
+      "emoji": "☕",
+      "colors": [
+        "#2b1a12",
+        "#8a5a3b"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    },
+    {
+      "id": "cafe-matcha",
+      "category": "cafes",
+      "name": "Matcha Latte",
+      "description": "Matcha cerimonial com leite à escolha, quente ou gelado.",
+      "price": 190,
+      "bestSeller": true,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [
+        "vegetariano"
+      ],
+      "emoji": "🍵",
+      "colors": [
+        "#1b2f1a",
+        "#6fa05a"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    },
+    {
+      "id": "fria-limonada",
+      "category": "frias",
+      "name": "Limonada de Manjericão",
+      "description": "Limão fresco, manjericão e gelo. Sem açúcar refinado.",
+      "price": 140,
+      "bestSeller": false,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [
+        "vegano"
+      ],
+      "emoji": "🍋",
+      "colors": [
+        "#2c3410",
+        "#d6d33a"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    },
+    {
+      "id": "doce-bolo",
+      "category": "doces",
+      "name": "Bolo de Cenoura e Chocolate",
+      "description": "Fatia generosa, cobertura de chocolate meio amargo.",
+      "price": 170,
+      "bestSeller": false,
+      "soldOut": false,
+      "hidden": false,
+      "tags": [
+        "vegetariano"
+      ],
+      "emoji": "🍰",
+      "colors": [
+        "#2a1410",
+        "#9c4a2a"
+      ],
+      "image": null,
+      "video": null,
+      "poster": null
+    }
+  ]
+}
