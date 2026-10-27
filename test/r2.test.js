@@ -33,7 +33,7 @@ test("R2Client: cabeçalhos SigV4 gerados corretamente", () => {
   });
 
   const { headers } = r2._buildHeaders("PUT", "/cardapio/foto.jpg", Buffer.from("conteudo"), "image/jpeg");
-  assert.equal(headers.Host, "112233445566778899aabbccddeeff00.r2.cloudflaredstorage.com");
+  assert.equal(headers.Host, "112233445566778899aabbccddeeff00.r2.cloudflarestorage.com");
   assert.match(headers["x-amz-date"], /^\d{8}T\d{6}Z$/);
   assert.match(headers["x-amz-content-sha256"], /^[0-9a-f]{64}$/);
   assert.match(headers.Authorization, /^AWS4-HMAC-SHA256 Credential=AKIATEST\/\d{8}\/auto\/s3\/aws4_request, SignedHeaders=[a-z0-9;-]+, Signature=[0-9a-f]{64}$/);

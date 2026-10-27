@@ -43,7 +43,7 @@ class R2Client {
     const now = new Date();
     const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
     const dateStamp = amzDate.slice(0, 8);
-    const host = `${this.accountId}.r2.cloudflaredstorage.com`;
+    const host = `${this.accountId}.r2.cloudflarestorage.com`;
     const payloadHash = this._sha256(payloadBuf);
 
     const headersMap = {
