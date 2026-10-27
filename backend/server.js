@@ -22,10 +22,28 @@ const MIME = {
   ".mp4": "video/mp4", ".webm": "video/webm", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8"
 };
 
+function resolveDataDir(custom) {
+  const target = path.resolve(custom || process.env.DATA_DIR || path.join(ROOT, "storage"));
+  try {
+    fs.mkdirSync(target, { recursive: true });
+    fs.accessSync(target, fs.constants.W_OK);
+    return target;
+  } catch (err) {
+    const fallback = path.join(ROOT, "storage");
+    try {
+      fs.mkdirSync(fallback, { recursive: true });
+      console.warn(`[storage] Sem permissão para ${target} (${err.message}). Usando fallback: ${fallback}`);
+      return fallback;
+    } catch (_) {
+      return target;
+    }
+  }
+}
+
 function createApp(opts = {}) {
   const env = process.env;
   const cfg = {
-    dataDir: path.resolve(opts.dataDir || env.DATA_DIR || path.join(ROOT, "storage")),
+    dataDir: resolveDataDir(opts.dataDir),
     publicDir: path.join(ROOT, "public"),
     demo: opts.demo ?? (env.DEMO_MODE ? env.DEMO_MODE !== "off" : env.NODE_ENV !== "production"),
     registration: opts.registration ?? env.REGISTRATION !== "off",
@@ -736,7 +754,7 @@ if (require.main === module) {
   const port = Number(process.argv[2] || process.env.PORT || 3001);
   const host = process.env.HOST || "0.0.0.0";
   (async () => {
-    const dataDir = path.resolve(process.env.DATA_DIR || path.join(ROOT, "storage"));
+    const dataDir = resolveDataDir();
     const dbFile = path.join(dataDir, "db.json");
     const r2 = new R2Client();
     if (r2.isConfigured() && !fs.existsSync(dbFile)) {
@@ -752,7 +770,7 @@ if (require.main === module) {
         console.warn("[r2] Não foi possível restaurar do R2:", err.message);
       }
     }
-    const app = createApp({ r2 });
+    const app = createApp({ r2, dataDir });
     app.server.listen(port, host, () => {
       console.log(`Cardápio em Feed a correr em http://localhost:${port}`);
       if (app.cfg.demo) console.log("Modo demonstração: dono@kutsakai.mz / kutsakai123  (desliga com DEMO_MODE=off)");
