@@ -181,6 +181,39 @@ body.has-tray { --tray-lift: 62px; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------- Botão chamar garçom ---------- */
+.waiter-btn {
+  position: fixed; z-index: 20; right: 16px; bottom: calc(var(--safe-bottom) + 80px);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 14px 10px; border: 0; border-radius: 18px; cursor: pointer;
+  background: var(--glass); color: var(--glass-fg);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  font-size: .65rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  box-shadow: 0 6px 20px rgba(0,0,0,.28);
+  transition: transform .15s, opacity .2s;
+}
+.waiter-btn[hidden] { display: none; }
+.waiter-btn:active { transform: scale(.91); }
+.waiter-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.waiter-btn span { line-height: 1; }
+body.has-tray .waiter-btn { bottom: calc(var(--safe-bottom) + 80px + 62px); }
+
+/* ---------- Sheet detalhe do prato ---------- */
+.detail-hero {
+  width: calc(100% + 40px); margin: 0 -20px; height: 260px; overflow: hidden; flex: none;
+  background: linear-gradient(160deg, var(--c1), var(--c2)); position: relative;
+}
+.detail-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-hero.plain { display: grid; place-items: center; }
+.detail-emoji { font-size: 100px; line-height: 1; }
+.detail-desc { margin: 0 0 16px; line-height: 1.55; color: var(--sheet-fg); font-size: .97rem; }
+.detail-buy { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.detail-price {
+  padding: 10px 16px; border-radius: var(--pill); font-weight: 800; font-size: 1.1rem; line-height: 1;
+  background: var(--price-bg); color: var(--price-fg); border: 1px solid var(--glass-line);
+}
+
 .msg { padding: 24px; line-height: 1.5; }
 .empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 32px; text-align: center; color: var(--muted); }
 .skeleton { position: absolute; inset: 0; background: linear-gradient(110deg, var(--bg) 30%, color-mix(in srgb, var(--bg) 85%, var(--fg)) 50%, var(--bg) 70%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }

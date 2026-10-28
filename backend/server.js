@@ -578,6 +578,19 @@ function createApp(opts = {}) {
     return { body: { orders } };
   });
 
+  /* chamar garçom */
+  route("POST", "/api/call-waiter", async (ctx) => {
+    if (!U.rateLimit(`call:${ctx.ip}`, 10, 60_000)) throw new HttpError(429, "Espera um momento antes de chamar de novo.");
+    const b = await U.readJSON(ctx.req);
+    const r = findRestaurant({ id: U.str(b.restaurantId, 20) });
+    if (!r) throw new HttpError(404, "Restaurante não encontrado.");
+    const mesa = U.str(String(b.mesa ?? ""), 12).replace(/[^\w-]/g, "");
+    const note = U.str(b.note, 100);
+    const call = { mesa, note, ts: Date.now() };
+    broadcast(r.id, "waiter-call", call);
+    return { body: { ok: true, call } };
+  });
+
   route("POST", "/api/orders/([a-f0-9]+)/cancel", async (ctx, oid) => {
     const b = await U.readJSON(ctx.req);
     const order = D.orders.find((o) => o.id === oid && o.sessionId === U.str(b.sessionId, 40));

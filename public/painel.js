@@ -243,6 +243,13 @@
     es.addEventListener("hello", (e) => { setLive(true); S.online = JSON.parse(e.data).online; loadOrders(); });
     es.addEventListener("orders", (e) => onOrderEvent(JSON.parse(e.data)));
     es.addEventListener("metrics", (e) => { S.online = JSON.parse(e.data).online; const k = $("kOnline"); if (k) k.textContent = String(S.online); });
+    es.addEventListener("waiter-call", (e) => {
+      const d = JSON.parse(e.data);
+      const mesaStr = d.mesa ? `Mesa ${d.mesa}` : "Mesa desconhecida";
+      const noteStr = d.note ? ` — "${d.note}"` : "";
+      toast(`🔔 Garçom chamado: ${mesaStr}${noteStr}`, false);
+      beep();
+    });
     es.onerror = () => {
       setLive(false);
       if (es.readyState === EventSource.CLOSED) {

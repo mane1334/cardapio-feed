@@ -25,6 +25,7 @@
   const $feed = $("feed");
   const $chips = $("chips");
   const $tray = $("trayBar");
+  const $waiterBtn = $("waiterBtn");
   const $sheetRoot = $("sheetRoot");
 
   const saveData = (navigator.connection && navigator.connection.saveData) || matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -95,7 +96,9 @@
     heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.500s-8-4.900-8-11A4.500 4.500 0 0 1 12 6.800 4.500 4.500 0 0 1 20 9.500c0 6.100-8 11-8 11z"/></svg>',
     share: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.500 7.500 12 3l4.500 4.500M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
     mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zm13.600 2 2.400-2.400-1.400-1.400-2.400 2.400-2.400-2.400-1.400 1.400 2.400 2.400-2.400 2.400 1.400 1.400 2.400-2.400 2.400 2.400 1.400-1.400L16.600 12z"/></svg>',
-    sound: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zm13.500 2a4.500 4.500 0 0 0-2.500-4v8a4.500 4.500 0 0 0 2.500-4z"/></svg>'
+    sound: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zm13.500 2a4.500 4.500 0 0 0-2.500-4v8a4.500 4.500 0 0 0 2.500-4z"/></svg>',
+    info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
   };
 
   /* ---------- tema ---------- */
@@ -239,6 +242,9 @@
     const share = el("button", { class: "act", type: "button", "aria-label": `Partilhar ${dish.name}`, onclick: () => shareDish(dish) },
       [el("span", { class: "ico", html: ICON.share }), el("span", { text: "Enviar" })]);
 
+    const detail = el("button", { class: "act", type: "button", "aria-label": `Ver detalhes de ${dish.name}`, onclick: () => dishDetailSheet(dish) },
+      [el("span", { class: "ico", html: ICON.info }), el("span", { text: "Detalhes" })]);
+
     const sound = el("button", { class: "sound", type: "button", "aria-label": "Ligar ou desligar o som", html: ICON.mute, onclick: toggleSound });
 
     const info = el("div", { class: "info" }, [
@@ -248,7 +254,7 @@
         dish.description ? el("p", { class: "desc", text: dish.description }) : null,
         buy
       ]),
-      el("div", { class: "side" }, [fav, share])
+      el("div", { class: "side" }, [fav, share, detail])
     ]);
 
     const article = el("article", {
@@ -265,6 +271,112 @@
       await navigator.clipboard.writeText(url);
       toast("Link copiado");
     } catch (_) { /* cancelado */ }
+  }
+
+  /* ---------- detalhes do prato ---------- */
+  function dishDetailSheet(dish) {
+    bump(dish.id, "taps");
+    openSheet(dish.name, (body) => {
+      // imagem/vídeo grande
+      const hero = el("div", { class: "detail-hero" });
+      hero.style.setProperty("--c1", dish.colors?.[0] || "#222");
+      hero.style.setProperty("--c2", dish.colors?.[1] || "#555");
+      const still = dish.image || (dish.video && dish.poster) || null;
+      if (still) {
+        hero.append(el("img", { src: still, alt: dish.name }));
+      } else {
+        hero.classList.add("plain");
+        hero.append(el("div", { class: "detail-emoji", "aria-hidden": "true", text: dish.emoji || "🍽️" }));
+      }
+      body.append(hero);
+
+      // tags
+      if (dish.soldOut || dish.bestSeller || (dish.tags && dish.tags.length)) {
+        const tags = el("div", { class: "tags", style: "margin: 14px 0 8px;" });
+        if (dish.soldOut) tags.append(el("span", { class: "tag out", text: "Esgotado" }));
+        if (dish.bestSeller) tags.append(el("span", { class: "tag hot", text: "Best seller" }));
+        for (const t of dish.tags || []) tags.append(el("span", { class: "tag", text: t }));
+        body.append(tags);
+      }
+
+      // descrição
+      if (dish.description) {
+        body.append(el("p", { class: "detail-desc", text: dish.description }));
+      }
+
+      // preço e botão pedir
+      const buyRow = el("div", { class: "detail-buy" });
+      buyRow.append(el("span", { class: "detail-price", text: money(dish.price) }));
+      if (!dish.soldOut && settings.orderingEnabled) {
+        const qty = cart.get(dish.id) || 0;
+        if (!qty) {
+          buyRow.append(el("button", {
+            class: "order", type: "button", text: "Adicionar ao pedido",
+            onclick: () => { setQty(dish.id, 1); closeSheet(); toast(`${dish.name} adicionado!`); }
+          }));
+        } else {
+          buyRow.append(el("div", { class: "stepper" }, [
+            el("button", { type: "button", "aria-label": "Menos um", text: "−", onclick: () => setQty(dish.id, qty - 1) }),
+            el("b", { text: String(qty) }),
+            el("button", { type: "button", "aria-label": "Mais um", text: "+", onclick: () => setQty(dish.id, qty + 1) })
+          ]));
+        }
+      }
+      body.append(buyRow);
+
+      // partilhar
+      body.append(el("button", {
+        class: "btn ghost", type: "button",
+        onclick: () => shareDish(dish),
+        html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.share} Enviar este prato</span>`
+      }));
+    });
+  }
+
+  /* ---------- chamar garçom ---------- */
+  let waiterCooldown = false;
+
+  function callWaiterSheet() {
+    openSheet("Chamar garçom", (body) => {
+      if (!mesa) {
+        body.append(el("p", { class: "muted", text: "Precisas de um link com mesa para chamar o garçom. Pede o QR code da mesa." }));
+        return;
+      }
+      body.append(el("p", { text: `Vais chamar o garçom para a mesa ${mesa}.` }));
+      const note = el("textarea", { rows: "2", maxlength: "100", placeholder: "Ex: pode trazer a conta, mais água…" });
+      body.append(el("label", { class: "field" }, [el("span", { text: "Mensagem (opcional)" }), note]));
+
+      const btn = el("button", {
+        class: "btn", type: "button",
+        html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} Chamar garçom · Mesa ${mesa}</span>`
+      });
+      if (waiterCooldown) {
+        btn.disabled = true;
+        btn.textContent = "Garçom já chamado";
+      }
+      btn.addEventListener("click", async () => {
+        if (preview) { toast("Pré-visualização: o sinal não é enviado"); return; }
+        if (waiterCooldown) return;
+        btn.disabled = true;
+        btn.textContent = "A enviar…";
+        try {
+          await api("/api/call-waiter", {
+            method: "POST",
+            body: { restaurantId: data.restaurant.id, mesa, note: note.value }
+          });
+          waiterCooldown = true;
+          toast("✔ Garçom avisado! Vem já ter contigo.");
+          if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+          closeSheet();
+          setTimeout(() => { waiterCooldown = false; }, 90_000); // 90s de cooldown
+        } catch (err) {
+          toast(err.message);
+          btn.disabled = false;
+          btn.textContent = "Tentar de novo";
+        }
+      });
+      body.append(btn);
+    });
   }
 
   function toggleSound() {
@@ -360,6 +472,11 @@
       if (settings.welcome) body.append(el("p", { text: settings.welcome }));
       if (mesa) body.append(el("p", { class: "muted", text: `Estás na mesa ${mesa}. Os pedidos chegam diretamente à cozinha.` }));
       if (settings.orderingEnabled) body.append(el("button", { class: "btn", type: "button", text: "Os meus pedidos", onclick: ordersSheet }));
+      if (mesa) body.append(el("button", {
+        class: "btn ghost", type: "button",
+        html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} Chamar garçom</span>`,
+        onclick: () => { closeSheet(); callWaiterSheet(); }
+      }));
       if (settings.whatsapp) body.append(el("a", { class: "btn ghost", href: `https://wa.me/${settings.whatsapp}`, target: "_blank", rel: "noopener", text: "Falar no WhatsApp" }));
       if (settings.instagram) body.append(el("a", { class: "btn ghost", href: `https://instagram.com/${settings.instagram}`, target: "_blank", rel: "noopener", text: `Instagram @${settings.instagram}` }));
     });
@@ -516,6 +633,13 @@
     $("brandName").textContent = data.restaurant.name;
     if (mesa) $("mesaLabel").textContent = `· Mesa ${mesa}`;
     $("infoBtn").addEventListener("click", infoSheet);
+
+    // botão chamar garçom — só aparece se há mesa
+    if (mesa && !preview) {
+      $waiterBtn.hidden = false;
+      $waiterBtn.innerHTML = ICON.bell + "<span>Garçom</span>";
+      $waiterBtn.addEventListener("click", callWaiterSheet);
+    }
 
     if (!data.dishes.length) {
       $feed.replaceChildren(el("div", { class: "dish" }, [el("div", { class: "empty", text: "O cardápio ainda está vazio. Volta daqui a pouco." })]));
