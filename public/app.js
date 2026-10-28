@@ -25,8 +25,6 @@
   const $feed = $("feed");
   const $chips = $("chips");
   const $tray = $("trayBar");
-  const $waiterBtn = $("waiterBtn");
-  const $waiterTopBtn = $("waiterTopBtn");
   const $sheetRoot = $("sheetRoot");
 
   let activeMesa = mesa || "";
@@ -419,20 +417,12 @@
       }
       body.append(buyRow);
 
-      // botões de ação organizados lado a lado
-      const actionsRow = el("div", { class: "detail-actions-row" }, [
-        el("button", {
-          class: "btn ghost", type: "button",
-          onclick: () => shareDish(dish),
-          html: `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center">${ICON.share} Enviar</span>`
-        }),
-        el("button", {
-          class: "btn ghost", type: "button",
-          onclick: () => { closeSheet(); callWaiterSheet(); },
-          html: `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center">${ICON.bell} Garçom</span>`
-        })
-      ]);
-      body.append(actionsRow);
+      const shareBtn = el("button", {
+        class: "btn ghost", type: "button",
+        text: "Enviar este prato",
+        onclick: () => shareDish(dish)
+      });
+      body.append(shareBtn);
     });
   }
 
@@ -756,17 +746,6 @@
     const initialMesa = activeMesa || mesa || store.get(`cf.mesa.${slug}`, "");
     if (initialMesa) $("mesaLabel").textContent = `· Mesa ${initialMesa}`;
     $("infoBtn").addEventListener("click", infoSheet);
-
-    // botão chamar garçom — visível sempre no cardápio público
-    if (!preview) {
-      $waiterBtn.hidden = false;
-      $waiterBtn.innerHTML = ICON.bell + "<span>Garçom</span>";
-      $waiterBtn.onclick = callWaiterSheet;
-      if ($waiterTopBtn) {
-        $waiterTopBtn.hidden = false;
-        $waiterTopBtn.onclick = callWaiterSheet;
-      }
-    }
 
     if (!data.dishes.length) {
       $feed.replaceChildren(el("div", { class: "dish" }, [el("div", { class: "empty", text: "O cardápio ainda está vazio. Volta daqui a pouco." })]));
