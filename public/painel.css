@@ -85,6 +85,50 @@ input[type="color"] { width: 44px; height: 38px; padding: 2px; border-radius: 10
 .tab { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 999px; border: 1px solid transparent; background: none; cursor: pointer; font-weight: 700; color: var(--muted); }
 .tab[aria-selected="true"] { background: var(--ink); color: #fff; }
 .tab .badge { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: #d4351c; color: #fff; font-size: .72rem; text-align: center; }
+.tab .badge.waiter-badge { background: #e67e22; animation: pulse 1.6s infinite; }
+
+/* ---------- Banner e Chamadas de Garçom ---------- */
+.waiter-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; margin-bottom: 14px; border-radius: var(--radius);
+  background: #fff8e6; border: 1.5px solid #f39c12; color: #874800; cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.waiter-banner:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.waiter-banner .icon { font-size: 1.6rem; line-height: 1; }
+.waiter-banner b { display: block; font-size: .95rem; color: #783e00; }
+.waiter-banner small { font-size: .8rem; opacity: .9; }
+
+.waiter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.waiter-card {
+  background: var(--surface); border: 2px solid #f39c12; border-radius: var(--radius); padding: 16px;
+  box-shadow: 0 4px 16px rgba(243,156,18,.15); position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;
+}
+.waiter-card.fresh { animation: flash-card .8s ease; }
+.waiter-card .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.waiter-card .mesa-num { font-family: var(--display); font-size: 1.55rem; font-weight: 800; color: #b75900; line-height: 1.1; }
+.waiter-card .mesa-note {
+  background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: .88rem;
+  color: var(--ink); border-left: 3px solid #f39c12; word-break: break-word;
+}
+.waiter-card .acts { display: flex; gap: 8px; margin-top: 4px; }
+.waiter-card .acts .btn { flex: 1; }
+
+.waiter-history { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
+.waiter-history summary { font-weight: 700; cursor: pointer; padding: 6px 0; color: var(--muted); }
+.waiter-history-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: .88rem;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .75; transform: scale(1.1); }
+}
+@keyframes flash-card {
+  0% { transform: scale(.96); box-shadow: 0 0 0 4px rgba(243,156,18,.5); }
+  100% { transform: scale(1); }
+}
 main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 90px; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 8px 0 14px; }
 

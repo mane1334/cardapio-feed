@@ -230,6 +230,39 @@ test("mesas: criar, duplicado e remover", async () => {
   assert.equal((await call("DELETE", `/api/tables/${t.json.table.id}`, { token: a.token })).status, 200);
 });
 
+test("chamadas de garçom: criar, listar, atualizar e remover", async () => {
+  clearRateLimits();
+  const a = await register("Bar Garçom", "garcom@exemplo.mz");
+  // tenta sem mesa
+  const semMesa = await call("POST", "/api/call-waiter", { body: { restaurantId: a.restaurant.id, note: "conta" } });
+  assert.equal(semMesa.status, 400);
+
+  // cria chamada com sucesso
+  const res = await call("POST", "/api/call-waiter", { body: { restaurantId: a.restaurant.id, mesa: "mesaum", note: "trazer conta" } });
+  assert.equal(res.status, 201);
+  assert.equal(res.json.call.mesa, "mesaum");
+  assert.equal(res.json.call.status, "pendente");
+
+  // dono lista chamadas
+  const list = await call("GET", "/api/waiter-calls", { token: a.token });
+  assert.equal(list.status, 200);
+  assert.equal(list.json.calls.length, 1);
+  assert.equal(list.json.calls[0].mesa, "mesaum");
+
+  // dono atende a chamada
+  const patch = await call("PATCH", `/api/waiter-calls/${res.json.call.id}`, { token: a.token, body: { status: "atendido" } });
+  assert.equal(patch.status, 200);
+  assert.equal(patch.json.call.status, "atendido");
+
+  // dono remove chamada
+  const del = await call("DELETE", `/api/waiter-calls/${res.json.call.id}`, { token: a.token });
+  assert.equal(del.status, 200);
+
+  // agora a lista está vazia
+  const listAfter = await call("GET", "/api/waiter-calls", { token: a.token });
+  assert.equal(listAfter.json.calls.length, 0);
+});
+
 test("tempo real: o painel recebe o pedido novo por SSE", async () => {
   clearRateLimits();
   const a = await register("Tempo Real", "sse@exemplo.mz");

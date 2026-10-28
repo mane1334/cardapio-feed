@@ -585,10 +585,57 @@ function createApp(opts = {}) {
     const r = findRestaurant({ id: U.str(b.restaurantId, 20) });
     if (!r) throw new HttpError(404, "Restaurante não encontrado.");
     const mesa = U.str(String(b.mesa ?? ""), 12).replace(/[^\w-]/g, "");
+    if (!mesa) throw new HttpError(400, "Indica o número ou nome da mesa.");
     const note = U.str(b.note, 100);
-    const call = { mesa, note, ts: Date.now() };
-    broadcast(r.id, "waiter-call", call);
-    return { body: { ok: true, call } };
+    const call = {
+      id: U.id(6),
+      restaurantId: r.id,
+      mesa,
+      note,
+      status: "pendente",
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    D.waiterCalls ||= [];
+    D.waiterCalls.push(call);
+    db.save();
+    broadcast(r.id, "waiter-call", { type: "new", call });
+    return { status: 201, body: { ok: true, call } };
+  });
+
+  route("GET", "/api/waiter-calls", (ctx) => {
+    const { restaurant } = auth(ctx);
+    D.waiterCalls ||= [];
+    const calls = D.waiterCalls
+      .filter((c) => c.restaurantId === restaurant.id && Date.now() - c.createdAt < 24 * 3_600_000)
+      .sort((a, b) => b.createdAt - a.createdAt);
+    return { body: { calls } };
+  });
+
+  route("PATCH", "/api/waiter-calls/([a-f0-9]+)", async (ctx, cid) => {
+    const { restaurant } = auth(ctx);
+    const b = await U.readJSON(ctx.req);
+    D.waiterCalls ||= [];
+    const call = D.waiterCalls.find((c) => c.id === cid && c.restaurantId === restaurant.id);
+    if (!call) throw new HttpError(404, "Chamada não encontrada.");
+    if (b.status && ["pendente", "atendido", "cancelado"].includes(b.status)) {
+      call.status = b.status;
+      call.updatedAt = Date.now();
+      db.save();
+      broadcast(restaurant.id, "waiter-call", { type: "update", call });
+    }
+    return { body: { call } };
+  });
+
+  route("DELETE", "/api/waiter-calls/([a-f0-9]+)", (ctx, cid) => {
+    const { restaurant } = auth(ctx);
+    D.waiterCalls ||= [];
+    const i = D.waiterCalls.findIndex((c) => c.id === cid && c.restaurantId === restaurant.id);
+    if (i < 0) throw new HttpError(404, "Chamada não encontrada.");
+    const [removed] = D.waiterCalls.splice(i, 1);
+    db.save();
+    broadcast(restaurant.id, "waiter-call", { type: "delete", call: removed });
+    return { body: { ok: true } };
   });
 
   route("POST", "/api/orders/([a-f0-9]+)/cancel", async (ctx, oid) => {
@@ -737,6 +784,7 @@ function createApp(opts = {}) {
     for (const [k, s] of Object.entries(D.sessions)) if (s.exp < now) delete D.sessions[k];
     const cutoff = now - 90 * 86_400_000;
     D.orders = D.orders.filter((o) => o.createdAt >= cutoff);
+    D.waiterCalls = (D.waiterCalls || []).filter((c) => c.createdAt >= (now - 24 * 3_600_000));
     db.save();
   }
   maintenance();

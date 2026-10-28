@@ -14,6 +14,7 @@ const EMPTY = () => ({
   sessions: {},
   tables: [],
   orders: [],
+  waiterCalls: [],
   analytics: {} // restaurantId -> dishId -> YYYY-MM-DD -> {views,ms,favs,taps}
 });
 
@@ -32,7 +33,9 @@ class DB {
   load() {
     try {
       const raw = fs.readFileSync(this.file, "utf8");
-      return Object.assign(EMPTY(), JSON.parse(raw));
+      const d = Object.assign(EMPTY(), JSON.parse(raw));
+      if (!Array.isArray(d.waiterCalls)) d.waiterCalls = [];
+      return d;
     } catch (err) {
       if (err.code !== "ENOENT") {
         // Ficheiro corrompido: guarda uma cópia antes de recomeçar, nunca apaga em silêncio.

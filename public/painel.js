@@ -4,7 +4,7 @@
 
   const $ = (id) => document.getElementById(id);
   const TABS = [
-    ["pedidos", "Pedidos"], ["metricas", "Métricas"], ["cardapio", "Cardápio"],
+    ["pedidos", "Pedidos"], ["garcom", "Garçom"], ["metricas", "Métricas"], ["cardapio", "Cardápio"],
     ["mesas", "Mesas e QR"], ["aparencia", "Aparência"], ["conta", "Conta"]
   ];
   const THEMES = [
@@ -21,6 +21,7 @@
   const S = {
     token: read("cf.token"), user: null, restaurant: null, tab: "pedidos",
     orders: [], fresh: new Set(), online: 0, sound: read("cf.sound") !== "0",
+    waiterCalls: [], freshCalls: new Set(),
     menu: null, menuSnap: "", dirty: false, expanded: new Set(),
     tables: [], range: "7d", metrics: null, sort: "views",
     look: null, lookSnap: "", es: null
@@ -124,6 +125,19 @@
     } catch (_) { /* sem áudio */ }
   }
 
+  function bellSound() {
+    if (!S.sound) return;
+    try {
+      actx ||= new (window.AudioContext || window.webkitAudioContext)();
+      [[987, 0], [1318, 0.14], [987, 0.32]].forEach(([freq, at]) => {
+        const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + at;
+        o.type = "sine"; o.frequency.value = freq; o.connect(g); g.connect(actx.destination);
+        g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        o.start(t); o.stop(t + 0.4);
+      });
+    } catch (_) { /* sem áudio */ }
+  }
+
   /* ================= ENTRAR ================= */
   function showLogin(mode = "login", message = "") {
     $("app").hidden = true;
@@ -192,18 +206,27 @@
       toast(S.sound ? "Som ligado" : "Som desligado");
     };
     connect();
-    await loadOrders();
+    await Promise.all([loadOrders(), loadWaiterCalls()]);
     const want = location.hash.slice(1);
     setTab(TABS.some(([id]) => id === want) ? want : "pedidos", true);
   }
 
   function renderTabs() {
     const active = S.orders.filter((o) => o.status === "novo").length;
+    const waiterActive = S.waiterCalls.filter((c) => c.status === "pendente").length;
     $("tabs").replaceChildren(...TABS.map(([id, label]) => el("button", {
       class: "tab", type: "button", role: "tab", "aria-selected": String(id === S.tab),
       onclick: () => setTab(id)
-    }, [label, id === "pedidos" && active ? el("span", { class: "badge", text: String(active) }) : null])));
-    document.title = active ? `(${active}) Pedidos novos · Painel` : "Painel do restaurante";
+    }, [
+      label,
+      id === "pedidos" && active ? el("span", { class: "badge", text: String(active) }) : null,
+      id === "garcom" && waiterActive ? el("span", { class: "badge waiter-badge", text: String(waiterActive) }) : null
+    ])));
+    let title = "Painel do restaurante";
+    if (waiterActive && active) title = `(${waiterActive} 🔔 / ${active} novos) · Painel`;
+    else if (waiterActive) title = `(${waiterActive} 🔔 garçom) · Painel`;
+    else if (active) title = `(${active}) Pedidos novos · Painel`;
+    document.title = title;
   }
 
   function confirmLeave() {
@@ -226,7 +249,7 @@
   function renderView() {
     const view = $("view");
     clear(view);
-    ({ pedidos: viewOrders, metricas: viewMetrics, cardapio: viewMenu, mesas: viewTables, aparencia: viewLook, conta: viewAccount })[S.tab](view);
+    ({ pedidos: viewOrders, garcom: viewWaiterCalls, metricas: viewMetrics, cardapio: viewMenu, mesas: viewTables, aparencia: viewLook, conta: viewAccount })[S.tab](view);
   }
 
   function setLive(on) {
@@ -240,15 +263,31 @@
     S.es?.close();
     const es = new EventSource(`/api/stream?token=${encodeURIComponent(S.token)}`);
     S.es = es;
-    es.addEventListener("hello", (e) => { setLive(true); S.online = JSON.parse(e.data).online; loadOrders(); });
+    es.addEventListener("hello", (e) => {
+      setLive(true);
+      S.online = JSON.parse(e.data).online;
+      loadOrders();
+      loadWaiterCalls();
+    });
     es.addEventListener("orders", (e) => onOrderEvent(JSON.parse(e.data)));
     es.addEventListener("metrics", (e) => { S.online = JSON.parse(e.data).online; const k = $("kOnline"); if (k) k.textContent = String(S.online); });
     es.addEventListener("waiter-call", (e) => {
-      const d = JSON.parse(e.data);
-      const mesaStr = d.mesa ? `Mesa ${d.mesa}` : "Mesa desconhecida";
-      const noteStr = d.note ? ` — "${d.note}"` : "";
-      toast(`🔔 Garçom chamado: ${mesaStr}${noteStr}`, false);
-      beep();
+      const { type, call } = JSON.parse(e.data);
+      if (!call) return;
+      if (type === "delete") {
+        S.waiterCalls = S.waiterCalls.filter((c) => c.id !== call.id);
+      } else {
+        const i = S.waiterCalls.findIndex((c) => c.id === call.id);
+        if (i >= 0) S.waiterCalls[i] = call;
+        else S.waiterCalls.unshift(call);
+        if (type === "new") {
+          S.freshCalls.add(call.id);
+          bellSound();
+          toast(`🔔 Garçom chamado: Mesa ${call.mesa}${call.note ? ` ("${call.note}")` : ""}`);
+        }
+      }
+      renderTabs();
+      if (S.tab === "garcom" || S.tab === "pedidos") renderView();
     });
     es.onerror = () => {
       setLive(false);
@@ -282,10 +321,34 @@
     catch (_) { /* mantém o que tem */ }
   }
 
+  async function loadWaiterCalls() {
+    try {
+      const res = await api("/api/waiter-calls");
+      S.waiterCalls = res.calls || [];
+      renderTabs();
+      if ((S.tab === "garcom" || S.tab === "pedidos") && !$("app").hidden) renderView();
+    } catch (_) { /* mantém o que tem */ }
+  }
+
   /* ================= PEDIDOS ================= */
   const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
 
   function viewOrders(view) {
+    const pendingCalls = S.waiterCalls.filter((c) => c.status === "pendente");
+    if (pendingCalls.length) {
+      view.append(el("div", {
+        class: "waiter-banner",
+        onclick: () => setTab("garcom")
+      }, [
+        el("span", { class: "icon", text: "🔔" }),
+        el("div", {}, [
+          el("b", { text: `${pendingCalls.length} ${pendingCalls.length === 1 ? "mesa está a chamar" : "mesas estão a chamar"} o garçom!` }),
+          el("small", { text: pendingCalls.map((c) => `Mesa ${c.mesa}`).join(", ") + " — Clica aqui para atender" })
+        ]),
+        el("button", { class: "btn sm", type: "button", text: "Ver chamadas" })
+      ]));
+    }
+
     const today = S.orders.filter((o) => o.createdAt >= startOfToday() && o.status !== "cancelado");
     const revenue = today.reduce((n, o) => n + o.total, 0);
     const byStatus = (s) => S.orders.filter((o) => o.status === s).sort((a, b) => a.createdAt - b.createdAt);
@@ -380,7 +443,116 @@
     setTimeout(() => { print(); document.body.classList.remove("print-ticket"); }, 50);
   }
 
-  setInterval(() => { if (S.token && S.tab === "pedidos" && !document.hidden && !$("app").hidden) renderView(); }, 30000);
+  setInterval(() => { if (S.token && (S.tab === "pedidos" || S.tab === "garcom") && !document.hidden && !$("app").hidden) renderView(); }, 30000);
+
+  /* ================= GARÇOM ================= */
+  function viewWaiterCalls(view) {
+    const pending = S.waiterCalls.filter((c) => c.status === "pendente");
+    const today = S.waiterCalls.filter((c) => c.createdAt >= startOfToday());
+    const attendedToday = today.filter((c) => c.status === "atendido");
+
+    view.append(
+      el("div", { class: "page-head" }, [
+        el("div", {}, [
+          el("h2", { text: "Chamadas de Garçom" }),
+          el("span", { class: "muted small", text: "Mesas que solicitaram atendimento no salão em tempo real." })
+        ]),
+        el("button", {
+          class: "btn sm", type: "button", text: "Atualizar",
+          onclick: () => loadWaiterCalls()
+        })
+      ]),
+      el("div", { class: "kpis" }, [
+        kpi(String(pending.length), "chamadas a aguardar", pending.length ? "warn" : "lime"),
+        kpi(String(attendedToday.length), "atendidas hoje"),
+        kpi(String(today.length), "total de chamadas hoje"),
+        el("div", { class: "kpi" }, [el("b", { text: String(S.online) }), el("span", { text: "clientes no cardápio" })])
+      ])
+    );
+
+    if (pending.length) {
+      view.append(
+        el("h3", { style: "margin: 18px 0 10px;", text: `A aguardar atendimento (${pending.length})` }),
+        el("div", { class: "waiter-grid" }, pending.map(waiterCallCard))
+      );
+    } else {
+      view.append(
+        el("div", { class: "card empty", style: "margin: 20px 0;" }, [
+          el("div", { style: "font-size: 2.2rem; margin-bottom: 6px;", text: "🔔" }),
+          el("b", { text: "Nenhuma chamada pendente" }),
+          el("p", { class: "muted", style: "margin: 0;", text: "Todas as mesas foram atendidas. Quando um cliente chamar pelo cardápio, toca um sinal sonoro e o pedido aparece aqui!" })
+        ])
+      );
+    }
+
+    const done = S.waiterCalls.filter((c) => c.status !== "pendente");
+    if (done.length) {
+      view.append(el("details", { class: "waiter-history", open: false }, [
+        el("summary", { text: `Histórico de chamadas atendidas (${done.length})` }),
+        ...done.map((c) => el("div", { class: "waiter-history-row" }, [
+          el("span", {}, [
+            el("b", { text: `Mesa ${c.mesa}` }),
+            c.note ? ` · "${c.note}"` : "",
+            el("span", { class: "muted small", style: "margin-left:8px;", text: `chamou às ${new Date(c.createdAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}` })
+          ]),
+          el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
+            el("span", { class: `pill ${c.status === "atendido" ? "ok" : "danger"}`, text: c.status === "atendido" ? "Atendido" : "Cancelado" }),
+            el("button", {
+              class: "btn sm danger", type: "button", style: "padding: 2px 8px; font-size: .75rem;", text: "✕", title: "Remover",
+              onclick: (e) => deleteWaiterCall(c, e.currentTarget)
+            })
+          ])
+        ]))
+      ]));
+    }
+  }
+
+  function waiterCallCard(c) {
+    const isFresh = S.freshCalls.has(c.id);
+    const card = el("article", { class: `waiter-card${isFresh ? " fresh" : ""}` }, [
+      el("div", { class: "card-top" }, [
+        el("div", {}, [
+          el("span", { class: "pill warn", style: "font-size:.68rem; margin-bottom:4px;", text: "Aguardando" }),
+          el("div", { class: "mesa-num", text: `Mesa ${c.mesa}` })
+        ]),
+        el("span", { class: "pill", text: ago(c.createdAt) })
+      ]),
+      c.note ? el("div", { class: "mesa-note", text: `"${c.note}"` }) : el("div", { class: "muted small", text: "Sem mensagem adicional." }),
+      el("div", { class: "acts" }, [
+        el("button", {
+          class: "btn primary", type: "button", text: "✓ Atender Mesa",
+          onclick: (e) => setWaiterStatus(c, "atendido", e.currentTarget)
+        }),
+        el("button", {
+          class: "btn sm danger", type: "button", text: "Descartar",
+          onclick: (e) => { if (confirm(`Descartar chamada da mesa ${c.mesa}?`)) deleteWaiterCall(c, e.currentTarget); }
+        })
+      ])
+    ]);
+    setTimeout(() => S.freshCalls.delete(c.id), 2500);
+    return card;
+  }
+
+  async function setWaiterStatus(call, status, btn) {
+    await guard(btn, async () => {
+      const res = await api(`/api/waiter-calls/${call.id}`, { method: "PATCH", body: { status } });
+      const i = S.waiterCalls.findIndex((x) => x.id === call.id);
+      if (i >= 0) S.waiterCalls[i] = res.call;
+      renderTabs();
+      renderView();
+      toast(`Mesa ${call.mesa} marcada como atendida!`);
+    });
+  }
+
+  async function deleteWaiterCall(call, btn) {
+    await guard(btn, async () => {
+      await api(`/api/waiter-calls/${call.id}`, { method: "DELETE" });
+      S.waiterCalls = S.waiterCalls.filter((x) => x.id !== call.id);
+      renderTabs();
+      renderView();
+      toast("Chamada removida.");
+    });
+  }
 
   /* ================= MÉTRICAS ================= */
   async function ensureMenu() {
@@ -932,7 +1104,7 @@
   /* ================= ARRANQUE ================= */
   addEventListener("beforeunload", (e) => { if (S.dirty || S.lookDirty) { e.preventDefault(); e.returnValue = ""; } });
   addEventListener("hashchange", () => { const id = location.hash.slice(1); if (S.token && !$("app").hidden && id !== S.tab && TABS.some(([t]) => t === id)) setTab(id); });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.token && !$("app").hidden) loadOrders(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.token && !$("app").hidden) { loadOrders(); loadWaiterCalls(); } });
 
   (async function boot() {
     if (!S.token) return showLogin(location.hash === "#registo" ? "register" : "login");

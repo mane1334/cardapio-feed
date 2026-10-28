@@ -26,7 +26,10 @@
   const $chips = $("chips");
   const $tray = $("trayBar");
   const $waiterBtn = $("waiterBtn");
+  const $waiterTopBtn = $("waiterTopBtn");
   const $sheetRoot = $("sheetRoot");
+
+  let activeMesa = mesa || "";
 
   const saveData = (navigator.connection && navigator.connection.saveData) || matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -338,17 +341,23 @@
 
   function callWaiterSheet() {
     openSheet("Chamar garçom", (body) => {
-      if (!mesa) {
-        body.append(el("p", { class: "muted", text: "Precisas de um link com mesa para chamar o garçom. Pede o QR code da mesa." }));
-        return;
+      let currentMesa = activeMesa || store.get(`cf.mesa.${slug}`, "");
+      let mesaInput;
+      if (!currentMesa) {
+        mesaInput = el("input", { type: "text", maxlength: "12", placeholder: "Ex: 4 ou mesaum", autocomplete: "off" });
+        body.append(
+          el("p", { text: "Indica o número ou nome da tua mesa para o garçom saber onde ir:" }),
+          el("label", { class: "field" }, [el("span", { text: "Mesa *" }), mesaInput])
+        );
+      } else {
+        body.append(el("p", { text: `Vais chamar o garçom para a mesa ${currentMesa}.` }));
       }
-      body.append(el("p", { text: `Vais chamar o garçom para a mesa ${mesa}.` }));
       const note = el("textarea", { rows: "2", maxlength: "100", placeholder: "Ex: pode trazer a conta, mais água…" });
       body.append(el("label", { class: "field" }, [el("span", { text: "Mensagem (opcional)" }), note]));
 
       const btn = el("button", {
         class: "btn", type: "button",
-        html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} Chamar garçom · Mesa ${mesa}</span>`
+        html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} ${currentMesa ? `Chamar garçom · Mesa ${currentMesa}` : "Chamar garçom"}</span>`
       });
       if (waiterCooldown) {
         btn.disabled = true;
@@ -357,18 +366,29 @@
       btn.addEventListener("click", async () => {
         if (preview) { toast("Pré-visualização: o sinal não é enviado"); return; }
         if (waiterCooldown) return;
+        const targetMesa = (currentMesa || mesaInput?.value || "").trim().replace(/[^\w-]/g, "");
+        if (!targetMesa) {
+          toast("Por favor indica o número ou nome da tua mesa.");
+          mesaInput?.focus();
+          return;
+        }
+        if (!currentMesa) {
+          activeMesa = targetMesa;
+          store.set(`cf.mesa.${slug}`, targetMesa);
+          $("mesaLabel").textContent = `· Mesa ${targetMesa}`;
+        }
         btn.disabled = true;
-        btn.textContent = "A enviar…";
+        btn.textContent = "A avisar o garçom…";
         try {
           await api("/api/call-waiter", {
             method: "POST",
-            body: { restaurantId: data.restaurant.id, mesa, note: note.value }
+            body: { restaurantId: data.restaurant.id, mesa: targetMesa, note: note.value }
           });
           waiterCooldown = true;
-          toast("✔ Garçom avisado! Vem já ter contigo.");
+          toast(`✔ Garçom avisado para a mesa ${targetMesa}! Vem já ter contigo.`);
           if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
           closeSheet();
-          setTimeout(() => { waiterCooldown = false; }, 90_000); // 90s de cooldown
+          setTimeout(() => { waiterCooldown = false; }, 60_000); // 60s cooldown
         } catch (err) {
           toast(err.message);
           btn.disabled = false;
@@ -470,9 +490,10 @@
   function infoSheet() {
     openSheet(data.restaurant.name, (body) => {
       if (settings.welcome) body.append(el("p", { text: settings.welcome }));
-      if (mesa) body.append(el("p", { class: "muted", text: `Estás na mesa ${mesa}. Os pedidos chegam diretamente à cozinha.` }));
+      const currentM = activeMesa || mesa || store.get(`cf.mesa.${slug}`, "");
+      if (currentM) body.append(el("p", { class: "muted", text: `Estás na mesa ${currentM}. Os pedidos chegam diretamente à cozinha.` }));
       if (settings.orderingEnabled) body.append(el("button", { class: "btn", type: "button", text: "Os meus pedidos", onclick: ordersSheet }));
-      if (mesa) body.append(el("button", {
+      body.append(el("button", {
         class: "btn ghost", type: "button",
         html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} Chamar garçom</span>`,
         onclick: () => { closeSheet(); callWaiterSheet(); }
@@ -631,14 +652,19 @@
     applyTheme(settings);
     document.title = data.restaurant.name;
     $("brandName").textContent = data.restaurant.name;
-    if (mesa) $("mesaLabel").textContent = `· Mesa ${mesa}`;
+    const initialMesa = activeMesa || mesa || store.get(`cf.mesa.${slug}`, "");
+    if (initialMesa) $("mesaLabel").textContent = `· Mesa ${initialMesa}`;
     $("infoBtn").addEventListener("click", infoSheet);
 
-    // botão chamar garçom — só aparece se há mesa
-    if (mesa && !preview) {
+    // botão chamar garçom — visível sempre no cardápio público
+    if (!preview) {
       $waiterBtn.hidden = false;
       $waiterBtn.innerHTML = ICON.bell + "<span>Garçom</span>";
-      $waiterBtn.addEventListener("click", callWaiterSheet);
+      $waiterBtn.onclick = callWaiterSheet;
+      if ($waiterTopBtn) {
+        $waiterTopBtn.hidden = false;
+        $waiterTopBtn.onclick = callWaiterSheet;
+      }
     }
 
     if (!data.dishes.length) {
