@@ -639,7 +639,7 @@
 
   function thumb(d) {
     const t = el("div", { class: "thumb" });
-    const src = d.image || d.poster;
+    const src = (d.images && d.images[0]) || d.image || d.poster;
     if (src) t.append(el("img", { src, alt: "", loading: "lazy" }));
     else { t.style.background = `linear-gradient(160deg, ${d.colors?.[0] || "#333"}, ${d.colors?.[1] || "#666"})`; t.textContent = d.emoji || "🍽️"; }
     return t;
@@ -761,7 +761,7 @@
   function addDish(categoryId) {
     const d = {
       id: `prato-${rand()}${rand()}`, category: categoryId, name: "Novo prato", description: "", price: 0, bestSeller: false, soldOut: false, hidden: false,
-      tags: [], emoji: "🍽️", colors: ["#2b2b2b", "#555555"], image: null, video: null, poster: null
+      tags: [], emoji: "🍽️", colors: ["#2b2b2b", "#555555"], images: [], videos: [], image: null, video: null, poster: null
     };
     S.menu.dishes.push(d);
     S.expanded.add(d.id);
@@ -813,11 +813,7 @@
           el("input", { type: "color", value: d.colors[1], "aria-label": "Cor 2", oninput: (e) => { d.colors[1] = e.target.value; markDirty(); } })])])
       ]),
       el("label", { class: "switch" }, [el("input", { type: "checkbox", checked: d.bestSeller, onchange: (e) => { d.bestSeller = e.target.checked; markDirty(); } }), el("i"), "Best seller (aparece em destaque e na aba própria)"]),
-      el("div", { class: "form2" }, [
-        mediaBox(d, "image", "Foto", "image", "image/*"),
-        mediaBox(d, "video", "Vídeo curto (3 a 5 s, vertical)", "video", "video/mp4,video/webm"),
-        d.video ? mediaBox(d, "poster", "Capa do vídeo", "image", "image/*") : null
-      ]),
+      mediaGalleryManager(d),
       el("div", { class: "row" }, [
         el("button", { class: "btn sm", type: "button", text: "↑ Subir", disabled: idx === 0, onclick: () => moveDish(d, siblings[idx - 1]) }),
         el("button", { class: "btn sm", type: "button", text: "↓ Descer", disabled: idx === siblings.length - 1, onclick: () => moveDish(d, siblings[idx + 1]) }),
@@ -843,9 +839,148 @@
     const copy = JSON.parse(JSON.stringify(d));
     copy.id = `${slugify(d.name) || "prato"}-${rand()}`.slice(0, 60);
     copy.name = `${d.name} (cópia)`.slice(0, 60);
+    if (!Array.isArray(copy.images)) copy.images = copy.image ? [copy.image] : [];
+    if (!Array.isArray(copy.videos)) copy.videos = copy.video ? [copy.video] : [];
     S.menu.dishes.splice(S.menu.dishes.indexOf(d) + 1, 0, copy);
     S.expanded.add(copy.id);
     markDirty(); renderMenuEditor();
+  }
+
+  function mediaGalleryManager(d) {
+    if (!Array.isArray(d.images)) d.images = d.image ? [d.image] : [];
+    if (!Array.isArray(d.videos)) d.videos = d.video ? [d.video] : [];
+
+    const syncMainMedia = () => {
+      d.image = d.images[0] || null;
+      d.video = d.videos[0] || null;
+      markDirty();
+      renderMenuEditor();
+    };
+
+    // Bloco de Fotos (até 4 fotos)
+    const photoSlots = el("div", { class: "media-grid-slots" });
+    d.images.forEach((url, idx) => {
+      const input = el("input", { type: "file", accept: "image/*", "aria-label": `Trocar foto ${idx + 1}` });
+      input.addEventListener("change", async () => {
+        const file = input.files[0];
+        if (!file) return;
+        try {
+          toast("A enviar foto…");
+          const out = await uploadFile(file, "image");
+          d.images[idx] = out.url;
+          syncMainMedia();
+          toast("Foto atualizada!");
+        } catch (err) { toast(err.message, true); }
+      });
+
+      const card = el("div", { class: "media-slot-card" }, [
+        el("div", { class: "media-slot-preview" }, [
+          el("img", { src: url, alt: `Foto ${idx + 1}` }),
+          el("span", { class: `media-slot-badge${idx === 0 ? " star" : ""}`, text: idx === 0 ? "★ Principal" : `Foto ${idx + 1}` })
+        ]),
+        el("div", { class: "media-slot-actions" }, [
+          el("span", { class: "btn sm file-btn", text: "Trocar" }, [input]),
+          el("button", {
+            class: "btn sm danger", type: "button", text: "✕", title: "Remover foto",
+            onclick: () => { d.images.splice(idx, 1); syncMainMedia(); }
+          })
+        ])
+      ]);
+      photoSlots.append(card);
+    });
+
+    if (d.images.length < 4) {
+      const addInput = el("input", { type: "file", accept: "image/*", "aria-label": "Adicionar foto" });
+      addInput.addEventListener("change", async () => {
+        const file = addInput.files[0];
+        if (!file) return;
+        try {
+          toast("A enviar foto…");
+          const out = await uploadFile(file, "image");
+          d.images.push(out.url);
+          syncMainMedia();
+          toast(`Foto ${d.images.length}/4 adicionada!`);
+        } catch (err) { toast(err.message, true); }
+      });
+      photoSlots.append(el("label", { class: "media-add-btn" }, [
+        addInput,
+        el("span", { class: "add-icon", text: "📷" }),
+        el("span", { text: `+ Adicionar Foto (${d.images.length + 1}/4)` })
+      ]));
+    }
+
+    // Bloco de Vídeos (até 2 vídeos)
+    const videoSlots = el("div", { class: "media-grid-slots" });
+    d.videos.forEach((url, idx) => {
+      const input = el("input", { type: "file", accept: "video/mp4,video/webm", "aria-label": `Trocar vídeo ${idx + 1}` });
+      input.addEventListener("change", async () => {
+        const file = input.files[0];
+        if (!file) return;
+        try {
+          toast("A enviar vídeo…");
+          const out = await uploadFile(file, "video");
+          d.videos[idx] = out.url;
+          syncMainMedia();
+          toast("Vídeo atualizado!");
+        } catch (err) { toast(err.message, true); }
+      });
+
+      const card = el("div", { class: "media-slot-card" }, [
+        el("div", { class: "media-slot-preview" }, [
+          el("video", { src: url, muted: true, loop: true, autoplay: true, playsinline: true }),
+          el("span", { class: "media-slot-badge", text: `Vídeo ${idx + 1}` })
+        ]),
+        el("div", { class: "media-slot-actions" }, [
+          el("span", { class: "btn sm file-btn", text: "Trocar" }, [input]),
+          el("button", {
+            class: "btn sm danger", type: "button", text: "✕", title: "Remover vídeo",
+            onclick: () => { d.videos.splice(idx, 1); syncMainMedia(); }
+          })
+        ])
+      ]);
+      videoSlots.append(card);
+    });
+
+    if (d.videos.length < 2) {
+      const addInput = el("input", { type: "file", accept: "video/mp4,video/webm", "aria-label": "Adicionar vídeo" });
+      addInput.addEventListener("change", async () => {
+        const file = addInput.files[0];
+        if (!file) return;
+        try {
+          toast("A enviar vídeo…");
+          const out = await uploadFile(file, "video");
+          d.videos.push(out.url);
+          syncMainMedia();
+          toast(`Vídeo ${d.videos.length}/2 adicionado!`);
+        } catch (err) { toast(err.message, true); }
+      });
+      videoSlots.append(el("label", { class: "media-add-btn" }, [
+        addInput,
+        el("span", { class: "add-icon", text: "🎥" }),
+        el("span", { text: `+ Adicionar Vídeo (${d.videos.length + 1}/2)` })
+      ]));
+    }
+
+    return el("div", { class: "media-gallery-section" }, [
+      el("div", { class: "media-gallery-head" }, [
+        el("b", { text: "Galeria de Fotos e Vídeos (Slide)" }),
+        el("span", { class: "muted small", text: "Até 4 fotos e 2 vídeos verticais por prato" })
+      ]),
+      el("div", { class: "media-gallery-block" }, [
+        el("div", { class: "media-gallery-title" }, [
+          el("span", { text: "Fotos (até 4)" }),
+          el("span", { class: "muted small", text: `${d.images.length}/4 fotos` })
+        ]),
+        photoSlots
+      ]),
+      el("div", { class: "media-gallery-block" }, [
+        el("div", { class: "media-gallery-title" }, [
+          el("span", { text: "Vídeos curtos (até 2)" }),
+          el("span", { class: "muted small", text: `${d.videos.length}/2 vídeos (MP4/WebM vertical)` })
+        ]),
+        videoSlots
+      ])
+    ]);
   }
 
   function mediaBox(d, key, label, kind, accept) {

@@ -17,7 +17,7 @@ svg { display: block; }
   background: linear-gradient(to bottom, var(--top-shade), transparent);
 }
 .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px 10px; }
-.top-actions-bar { display: flex; align-items: center; gap: 8px; }
+.top-actions-bar { display: flex; flex-direction: row; align-items: center; gap: 8px; flex-shrink: 0; }
 .brand { display: flex; align-items: baseline; gap: 8px; min-width: 0; color: var(--on-media); text-shadow: 0 1px 12px rgba(0,0,0,.45); }
 .brand span {
   font-family: var(--display); font-style: var(--display-style); font-weight: var(--display-weight);
@@ -51,12 +51,57 @@ svg { display: block; }
 .feed::-webkit-scrollbar { display: none; }
 .dish { position: relative; height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; isolation: isolate; }
 
-.media { position: absolute; inset: 0; z-index: -2; background: linear-gradient(160deg, var(--c1), var(--c2)); }
+.media { position: absolute; inset: 0; z-index: -2; background: linear-gradient(160deg, var(--c1), var(--c2)); overflow: hidden; }
 .media.plain::after { content: ""; position: absolute; inset: 0; background: var(--media-tint, transparent); }
-.media img, .media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .media .art {
   position: absolute; inset: 0; display: grid; place-items: center; font-size: min(46vw, 250px);
   filter: drop-shadow(0 20px 40px rgba(0,0,0,.45)); opacity: .92; transform: translateY(-9%);
+}
+
+/* Slider horizontal de fotos e vídeos */
+.media-slider {
+  position: absolute; inset: 0; display: flex; flex-direction: row;
+  overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.media-slider::-webkit-scrollbar { display: none; }
+.media-slide {
+  flex: 0 0 100%; width: 100%; height: 100%; position: relative;
+  scroll-snap-align: start; scroll-snap-stop: always;
+}
+.media-slide img, .media-slide video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+}
+
+/* Indicadores de slides (dots) */
+.media-dots {
+  position: absolute; top: calc(var(--safe-top) + 96px); left: 50%; transform: translateX(-50%);
+  z-index: 4; display: flex; align-items: center; gap: 5px; padding: 4px 8px;
+  border-radius: 999px; background: rgba(0,0,0,.35); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  pointer-events: none; transition: opacity .2s;
+}
+.media-dots .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.45);
+  transition: width .2s, background .2s;
+}
+.media-dots .dot.active {
+  width: 16px; border-radius: 999px; background: #fff;
+}
+
+/* Setas sutis de navegação no desktop/tablet */
+.slide-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 5;
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--glass-line);
+  background: rgba(0,0,0,.35); color: #fff; cursor: pointer; display: none; place-items: center;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  font-size: 1rem; line-height: 1; transition: background .15s, transform .15s;
+}
+.slide-nav:hover { background: rgba(0,0,0,.65); transform: translateY(-50%) scale(1.06); }
+.slide-nav:active { transform: translateY(-50%) scale(.92); }
+.slide-nav.prev { left: 10px; }
+.slide-nav.next { right: 10px; }
+@media (min-width: 720px) {
+  .dish:hover .slide-nav { display: grid; }
 }
 .shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, var(--shade) 0%, transparent 62%); }
 
@@ -202,18 +247,37 @@ body.has-tray .waiter-btn { bottom: calc(var(--safe-bottom) + 84px + 62px); }
 
 /* ---------- Sheet detalhe do prato ---------- */
 .detail-hero {
-  width: calc(100% + 40px); margin: 0 -20px; height: 260px; overflow: hidden; flex: none;
+  width: calc(100% + 40px); margin: 0 -20px 14px; height: 260px; overflow: hidden; flex: none;
   background: linear-gradient(160deg, var(--c1), var(--c2)); position: relative;
 }
-.detail-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-slider {
+  display: flex; width: 100%; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.detail-slider::-webkit-scrollbar { display: none; }
+.detail-slide {
+  flex: 0 0 100%; width: 100%; height: 100%; position: relative; scroll-snap-align: start;
+}
+.detail-slide img, .detail-slide video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
 .detail-hero.plain { display: grid; place-items: center; }
 .detail-emoji { font-size: 100px; line-height: 1; }
+.detail-dots {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px;
+  background: rgba(0,0,0,.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.detail-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.45); transition: .2s; }
+.detail-dots .dot.active { width: 16px; border-radius: 999px; background: #fff; }
 .detail-desc { margin: 0 0 16px; line-height: 1.55; color: var(--sheet-fg); font-size: .97rem; }
-.detail-buy { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.detail-buy { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .detail-price {
   padding: 10px 16px; border-radius: var(--pill); font-weight: 800; font-size: 1.1rem; line-height: 1;
   background: var(--price-bg); color: var(--price-fg); border: 1px solid var(--glass-line);
 }
+.detail-actions-row { display: flex; gap: 10px; margin-top: 6px; }
+.detail-actions-row .btn { flex: 1; margin-top: 0; padding: 12px 14px; font-size: .92rem; }
 
 .msg { padding: 24px; line-height: 1.5; }
 .empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 32px; text-align: center; color: var(--muted); }

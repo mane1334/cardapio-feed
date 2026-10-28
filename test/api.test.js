@@ -103,6 +103,32 @@ test("menu rejeita URLs perigosos e media de outro restaurante", async () => {
   assert.equal((await call("PUT", "/api/menu", { token: a.token, body: { categories: [], dishes: [] } })).status, 400);
 });
 
+test("menu suporta múltiplos vídeos (até 2) e fotos (até 4) por prato para slide", async () => {
+  clearRateLimits();
+  const a = await register("Galeria Slide", "slide@exemplo.mz");
+  const full = (await call("GET", "/api/menu/full", { token: a.token })).json;
+  const d = full.dishes[0];
+  d.images = [
+    "https://exemplo.com/foto1.jpg",
+    "https://exemplo.com/foto2.jpg",
+    "https://exemplo.com/foto3.jpg",
+    "https://exemplo.com/foto4.jpg",
+    "https://exemplo.com/foto5-excesso.jpg"
+  ];
+  d.videos = [
+    "https://exemplo.com/video1.mp4",
+    "https://exemplo.com/video2.mp4",
+    "https://exemplo.com/video3-excesso.mp4"
+  ];
+  const put = await call("PUT", "/api/menu", { token: a.token, body: { categories: full.categories, dishes: full.dishes } });
+  assert.equal(put.status, 200);
+  const saved = put.json.dishes[0];
+  assert.equal(saved.images.length, 4);
+  assert.equal(saved.videos.length, 2);
+  assert.equal(saved.image, "https://exemplo.com/foto1.jpg");
+  assert.equal(saved.video, "https://exemplo.com/video1.mp4");
+});
+
 test("uploads: valida o conteúdo real do ficheiro e serve com Range", async () => {
   clearRateLimits();
   const a = await register("Upload", "up@exemplo.mz");

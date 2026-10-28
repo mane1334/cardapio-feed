@@ -227,6 +227,52 @@ details.guide ol { padding-left: 20px; }
 .swatches { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
 .swatch[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--forest); }
+
+/* ---------- Gerenciador de Galeria de Fotos e Vídeos ---------- */
+.media-gallery-section {
+  background: var(--soft); border-radius: var(--radius); padding: 16px; margin: 12px 0; border: 1px solid var(--line);
+}
+.media-gallery-head {
+  display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px;
+}
+.media-gallery-head b { font-size: .96rem; color: var(--ink); }
+.media-gallery-block { margin-bottom: 14px; }
+.media-gallery-block:last-child { margin-bottom: 0; }
+.media-gallery-title {
+  display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: .84rem; margin-bottom: 8px; color: var(--ink);
+}
+.media-grid-slots {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;
+}
+.media-slot-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  overflow: hidden; display: flex; flex-direction: column; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,.04);
+}
+.media-slot-preview {
+  width: 100%; height: 110px; background: #1a1a1a; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+}
+.media-slot-preview img, .media-slot-preview video {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.media-slot-badge {
+  position: absolute; top: 6px; left: 6px; font-size: .65rem; font-weight: 800; padding: 2px 6px;
+  border-radius: 4px; background: rgba(0,0,0,.65); color: #fff;
+}
+.media-slot-badge.star { background: var(--forest); color: #fff; }
+.media-slot-actions {
+  display: flex; gap: 4px; padding: 6px; background: var(--surface);
+}
+.media-slot-actions .btn { flex: 1; padding: 4px; font-size: .75rem; }
+
+.media-add-btn {
+  min-height: 142px; border: 2px dashed var(--line); border-radius: 10px; background: var(--surface);
+  cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: var(--muted); font-size: .78rem; font-weight: 700; transition: border-color .15s, color .15s;
+  position: relative; padding: 10px; text-align: center;
+}
+.media-add-btn:hover { border-color: var(--forest); color: var(--forest); }
+.media-add-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.media-add-btn .add-icon { font-size: 1.5rem; line-height: 1; }
 .preview { position: sticky; top: 64px; }
 .phone { width: 340px; height: 640px; border-radius: 34px; border: 8px solid #17201a; background: #000; overflow: hidden; box-shadow: var(--shadow); }
 .phone iframe { width: 100%; height: 100%; border: 0; display: block; }

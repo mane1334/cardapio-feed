@@ -215,6 +215,22 @@ function createApp(opts = {}) {
       if (!SAFE_ID.test(did) || !name || seenDish.has(did)) continue;
       seenDish.add(did);
       const colors = Array.isArray(d.colors) ? d.colors.filter((x) => U.HEX.test(x)).slice(0, 2) : [];
+      let images = [];
+      if (Array.isArray(d.images)) {
+        images = d.images.map((img) => safeMedia(img, restId)).filter(Boolean).slice(0, 4);
+      } else if (d.image) {
+        const single = safeMedia(d.image, restId);
+        if (single) images.push(single);
+      }
+
+      let videos = [];
+      if (Array.isArray(d.videos)) {
+        videos = d.videos.map((vid) => safeMedia(vid, restId)).filter(Boolean).slice(0, 2);
+      } else if (d.video) {
+        const singleV = safeMedia(d.video, restId);
+        if (singleV) videos.push(singleV);
+      }
+
       dishes.push({
         id: did,
         category: seenCat.has(d.category) ? d.category : categories[0].id,
@@ -227,8 +243,10 @@ function createApp(opts = {}) {
         tags: Array.isArray(d.tags) ? [...new Set(d.tags.map((t) => U.str(t, 20).toLowerCase()).filter(Boolean))].slice(0, 5) : [],
         emoji: U.str(d.emoji, 8),
         colors: colors.length === 2 ? colors : ["#2b2b2b", "#555555"],
-        image: safeMedia(d.image, restId),
-        video: safeMedia(d.video, restId),
+        images,
+        videos,
+        image: images[0] || null,
+        video: videos[0] || null,
         poster: safeMedia(d.poster, restId)
       });
     }

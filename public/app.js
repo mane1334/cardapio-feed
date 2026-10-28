@@ -206,19 +206,77 @@
     }
   }
 
+  /* ---------- mídias e slider ---------- */
+  function getDishMedia(dish) {
+    const list = [];
+    const videos = Array.isArray(dish.videos) && dish.videos.length ? dish.videos : (dish.video ? [dish.video] : []);
+    const images = Array.isArray(dish.images) && dish.images.length ? dish.images : (dish.image ? [dish.image] : []);
+
+    for (const v of videos) list.push({ type: "video", url: v, poster: dish.poster });
+    for (const img of images) list.push({ type: "image", url: img });
+
+    if (!list.length) list.push({ type: "empty" });
+    return list;
+  }
+
   function buildMedia(dish) {
+    const mediaList = getDishMedia(dish);
     const media = el("div", { class: "media" });
     media.style.setProperty("--c1", dish.colors?.[0] || "#222");
     media.style.setProperty("--c2", dish.colors?.[1] || "#555");
-    const still = dish.image || (dish.video && dish.poster) || null;
-    if (still) media.append(el("img", { src: still, alt: dish.name, loading: "lazy", decoding: "async" }));
-    else if (!dish.video) { media.classList.add("plain"); media.append(el("div", { class: "art", "aria-hidden": "true", text: dish.emoji || "🍽️" })); }
-    if (dish.video && !saveData) {
-      const video = el("video", { muted: true, loop: true, playsinline: true, preload: "none", "data-src": dish.video });
-      if (dish.poster) video.setAttribute("poster", dish.poster);
-      video.muted = true;
-      media.append(video);
+
+    if (mediaList.length === 1 && mediaList[0].type === "empty") {
+      media.classList.add("plain");
+      media.append(el("div", { class: "art", "aria-hidden": "true", text: dish.emoji || "🍽️" }));
+      return media;
     }
+
+    const slider = el("div", { class: "media-slider" });
+    const dots = mediaList.length > 1 ? el("div", { class: "media-dots" }) : null;
+
+    mediaList.forEach((m, idx) => {
+      const slide = el("div", { class: `media-slide ${m.type}`, "data-idx": String(idx) });
+      if (m.type === "image") {
+        slide.append(el("img", { src: m.url, alt: dish.name, loading: idx === 0 ? "eager" : "lazy", decoding: "async" }));
+      } else if (m.type === "video" && !saveData) {
+        const video = el("video", {
+          muted: true, loop: true, playsinline: true, preload: "none", "data-src": m.url
+        });
+        if (m.poster) video.setAttribute("poster", m.poster);
+        video.muted = muted;
+        slide.append(video);
+      }
+      slider.append(slide);
+
+      if (dots) {
+        dots.append(el("span", { class: `dot${idx === 0 ? " active" : ""}` }));
+      }
+    });
+
+    media.append(slider);
+
+    if (dots) {
+      media.append(dots);
+      slider.addEventListener("scroll", () => {
+        const width = slider.clientWidth || 1;
+        const activeIdx = Math.round(slider.scrollLeft / width);
+        dots.querySelectorAll(".dot").forEach((d, i) => d.classList.toggle("active", i === activeIdx));
+      }, { passive: true });
+    }
+
+    // Navegação lateral em telas de tablet e computador
+    if (mediaList.length > 1) {
+      const prev = el("button", {
+        class: "slide-nav prev", type: "button", "aria-label": "Foto anterior",
+        onclick: (e) => { e.stopPropagation(); slider.scrollBy({ left: -slider.clientWidth, behavior: "smooth" }); }
+      }, [el("span", { html: "&#10094;" })]);
+      const next = el("button", {
+        class: "slide-nav next", type: "button", "aria-label": "Próxima foto",
+        onclick: (e) => { e.stopPropagation(); slider.scrollBy({ left: slider.clientWidth, behavior: "smooth" }); }
+      }, [el("span", { html: "&#10095;" })]);
+      media.append(prev, next);
+    }
+
     return media;
   }
 
@@ -230,6 +288,9 @@
 
     const buy = el("div", { class: "buy" });
     renderBuy(buy, dish);
+
+    const detail = el("button", { class: "act", type: "button", "aria-label": `Ver detalhes de ${dish.name}`, onclick: () => dishDetailSheet(dish) },
+      [el("span", { class: "ico", html: ICON.info }), el("span", { text: "Detalhes" })]);
 
     const fav = el("button", {
       class: "act", type: "button", "aria-pressed": String(Boolean(favs[dish.id])), "aria-label": `Guardar ${dish.name}`,
@@ -245,9 +306,7 @@
     const share = el("button", { class: "act", type: "button", "aria-label": `Partilhar ${dish.name}`, onclick: () => shareDish(dish) },
       [el("span", { class: "ico", html: ICON.share }), el("span", { text: "Enviar" })]);
 
-    const detail = el("button", { class: "act", type: "button", "aria-label": `Ver detalhes de ${dish.name}`, onclick: () => dishDetailSheet(dish) },
-      [el("span", { class: "ico", html: ICON.info }), el("span", { text: "Detalhes" })]);
-
+    const hasVid = Boolean((dish.videos && dish.videos.length) || dish.video);
     const sound = el("button", { class: "sound", type: "button", "aria-label": "Ligar ou desligar o som", html: ICON.mute, onclick: toggleSound });
 
     const info = el("div", { class: "info" }, [
@@ -257,12 +316,15 @@
         dish.description ? el("p", { class: "desc", text: dish.description }) : null,
         buy
       ]),
-      el("div", { class: "side" }, [fav, share, detail])
+      el("div", { class: "side" }, [detail, fav, share])
     ]);
 
     const article = el("article", {
-      class: "dish" + (dish.video && !saveData ? " has-video" : ""), "data-id": dish.id, "data-cat": dish.category, id: `p-${dish.id}`, "aria-label": dish.name
+      class: "dish" + (hasVid && !saveData ? " has-video" : ""), "data-id": dish.id, "data-cat": dish.category, id: `p-${dish.id}`, "aria-label": dish.name
     }, [buildMedia(dish), el("div", { class: "shade" }), sound, info]);
+    article.addEventListener("click", (e) => { if (!e.target.closest("button")) bump(dish.id, "taps"); });
+    return article;
+  }
     article.addEventListener("click", (e) => { if (!e.target.closest("button")) bump(dish.id, "taps"); });
     return article;
   }
@@ -280,16 +342,46 @@
   function dishDetailSheet(dish) {
     bump(dish.id, "taps");
     openSheet(dish.name, (body) => {
-      // imagem/vídeo grande
       const hero = el("div", { class: "detail-hero" });
       hero.style.setProperty("--c1", dish.colors?.[0] || "#222");
       hero.style.setProperty("--c2", dish.colors?.[1] || "#555");
-      const still = dish.image || (dish.video && dish.poster) || null;
-      if (still) {
-        hero.append(el("img", { src: still, alt: dish.name }));
-      } else {
+      const mediaList = getDishMedia(dish);
+
+      if (mediaList.length === 1 && mediaList[0].type === "empty") {
         hero.classList.add("plain");
         hero.append(el("div", { class: "detail-emoji", "aria-hidden": "true", text: dish.emoji || "🍽️" }));
+      } else {
+        const slider = el("div", { class: "detail-slider" });
+        const dots = mediaList.length > 1 ? el("div", { class: "detail-dots" }) : null;
+
+        mediaList.forEach((m, idx) => {
+          const slide = el("div", { class: "detail-slide" });
+          if (m.type === "image") {
+            slide.append(el("img", { src: m.url, alt: dish.name }));
+          } else if (m.type === "video") {
+            const v = el("video", {
+              src: m.url, controls: true, playsinline: true, muted: false, preload: "metadata"
+            });
+            if (m.poster) v.poster = m.poster;
+            slide.append(v);
+          }
+          slider.append(slide);
+
+          if (dots) {
+            dots.append(el("span", { class: `dot${idx === 0 ? " active" : ""}` }));
+          }
+        });
+
+        hero.append(slider);
+
+        if (dots) {
+          hero.append(dots);
+          slider.addEventListener("scroll", () => {
+            const width = slider.clientWidth || 1;
+            const activeIdx = Math.round(slider.scrollLeft / width);
+            dots.querySelectorAll(".dot").forEach((d, i) => d.classList.toggle("active", i === activeIdx));
+          }, { passive: true });
+        }
       }
       body.append(hero);
 
@@ -307,7 +399,7 @@
         body.append(el("p", { class: "detail-desc", text: dish.description }));
       }
 
-      // preço e botão pedir
+      // linha de compra: preço + botão pedir
       const buyRow = el("div", { class: "detail-buy" });
       buyRow.append(el("span", { class: "detail-price", text: money(dish.price) }));
       if (!dish.soldOut && settings.orderingEnabled) {
@@ -327,12 +419,20 @@
       }
       body.append(buyRow);
 
-      // partilhar
-      body.append(el("button", {
-        class: "btn ghost", type: "button",
-        onclick: () => shareDish(dish),
-        html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.share} Enviar este prato</span>`
-      }));
+      // botões de ação organizados lado a lado
+      const actionsRow = el("div", { class: "detail-actions-row" }, [
+        el("button", {
+          class: "btn ghost", type: "button",
+          onclick: () => shareDish(dish),
+          html: `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center">${ICON.share} Enviar</span>`
+        }),
+        el("button", {
+          class: "btn ghost", type: "button",
+          onclick: () => { closeSheet(); callWaiterSheet(); },
+          html: `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:center">${ICON.bell} Garçom</span>`
+        })
+      ]);
+      body.append(actionsRow);
     });
   }
 
@@ -439,23 +539,24 @@
           startView(id);
           const dish = byId.get(id);
           setActiveChip(dish.category);
-          const v = node.querySelector("video");
-          if (v) {
+          const vids = node.querySelectorAll("video");
+          for (const v of vids) {
             if (!v.src && v.dataset.src) v.src = v.dataset.src;
             v.muted = muted;
             v.play().catch(() => {});
           }
         } else {
           stopView(id);
-          node.querySelector("video")?.pause();
+          for (const v of node.querySelectorAll("video")) v.pause();
         }
       }
     }, { root: $feed, threshold: [0, VISIBLE_RATIO, 1] });
 
     const pre = new IntersectionObserver((entries) => {
       for (const e of entries) {
-        const v = e.target.querySelector("video");
-        if (e.isIntersecting && v && !v.src && v.dataset.src) { v.preload = "metadata"; v.src = v.dataset.src; }
+        for (const v of e.target.querySelectorAll("video")) {
+          if (e.isIntersecting && !v.src && v.dataset.src) { v.preload = "metadata"; v.src = v.dataset.src; }
+        }
       }
     }, { root: $feed, rootMargin: "100% 0px 100% 0px" });
 
