@@ -47,7 +47,7 @@ function createApp(opts = {}) {
     publicDir: path.join(ROOT, "public"),
     demo: opts.demo ?? (env.DEMO_MODE ? env.DEMO_MODE !== "off" : env.NODE_ENV !== "production"),
     registration: opts.registration ?? env.REGISTRATION !== "off",
-    trustProxy: opts.trustProxy ?? env.TRUST_PROXY === "1",
+    trustProxy: opts.trustProxy ?? (env.TRUST_PROXY === "1" || env.RENDER === "true" || !!env.RENDER),
     tzOffsetMin: Number(opts.tzOffsetMin ?? env.TZ_OFFSET_MIN ?? 120), // Maputo = UTC+2
     sessionDays: Number(env.SESSION_DAYS || 7)
   };

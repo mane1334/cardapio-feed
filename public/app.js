@@ -25,6 +25,7 @@
   const $feed = $("feed");
   const $chips = $("chips");
   const $tray = $("trayBar");
+  const $waiterBtn = $("waiterBtn");
   const $sheetRoot = $("sheetRoot");
 
   let activeMesa = mesa || "";
@@ -431,7 +432,7 @@
 
   function callWaiterSheet() {
     openSheet("Chamar garçom", (body) => {
-      let currentMesa = activeMesa || store.get(`cf.mesa.${slug}`, "");
+      let currentMesa = activeMesa || mesa || store.get(`cf.mesa.${slug}`, "");
       let mesaInput;
       if (!currentMesa) {
         mesaInput = el("input", { type: "text", maxlength: "12", placeholder: "Ex: 4 ou mesaum", autocomplete: "off" });
@@ -453,7 +454,8 @@
         btn.disabled = true;
         btn.textContent = "Garçom já chamado";
       }
-      btn.addEventListener("click", async () => {
+      btn.addEventListener("click", async (e) => {
+        if (e) e.preventDefault();
         if (preview) { toast("Pré-visualização: o sinal não é enviado"); return; }
         if (waiterCooldown) return;
         const targetMesa = (currentMesa || mesaInput?.value || "").trim().replace(/[^\w-]/g, "");
@@ -472,17 +474,19 @@
         try {
           await api("/api/call-waiter", {
             method: "POST",
-            body: { restaurantId: data.restaurant.id, mesa: targetMesa, note: note.value }
+            body: { restaurantId: data.restaurant.id, mesa: targetMesa, note: note ? note.value : "" }
           });
           waiterCooldown = true;
           toast(`✔ Garçom avisado para a mesa ${targetMesa}! Vem já ter contigo.`);
-          if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+          if (navigator.vibrate) {
+            try { navigator.vibrate([80, 40, 80]); } catch (_) {}
+          }
           closeSheet();
           setTimeout(() => { waiterCooldown = false; }, 60_000); // 60s cooldown
         } catch (err) {
-          toast(err.message);
+          toast(err.message || "Erro ao chamar garçom.");
           btn.disabled = false;
-          btn.textContent = "Tentar de novo";
+          btn.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} Tentar de novo</span>`;
         }
       });
       body.append(btn);
@@ -557,6 +561,18 @@
   let closeSheet = () => {};
 
   function openSheet(title, build) {
+    const existingSheet = $sheetRoot.querySelector(".sheet");
+    if (existingSheet) {
+      existingSheet.setAttribute("aria-label", title);
+      const h2 = existingSheet.querySelector("h2");
+      if (h2) h2.textContent = title;
+      const b = existingSheet.querySelector(".body");
+      if (b) {
+        b.replaceChildren();
+        build(b);
+        return;
+      }
+    }
     closeSheet();
     const body = el("div", { class: "body" });
     const sheet = el("section", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": title }, [
@@ -575,7 +591,7 @@
       closeSheet = () => {};
     };
     build(body);
-    sheet.querySelector(".x").focus({ preventScroll: true });
+    try { sheet.querySelector(".x")?.focus({ preventScroll: true }); } catch (_) {}
   }
 
   function infoSheet() {
@@ -587,7 +603,7 @@
       body.append(el("button", {
         class: "btn ghost", type: "button",
         html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} Chamar garçom</span>`,
-        onclick: () => { closeSheet(); callWaiterSheet(); }
+        onclick: () => callWaiterSheet()
       }));
       if (settings.whatsapp) body.append(el("a", { class: "btn ghost", href: `https://wa.me/${settings.whatsapp}`, target: "_blank", rel: "noopener", text: "Falar no WhatsApp" }));
       if (settings.instagram) body.append(el("a", { class: "btn ghost", href: `https://instagram.com/${settings.instagram}`, target: "_blank", rel: "noopener", text: `Instagram @${settings.instagram}` }));
@@ -711,6 +727,8 @@
   function updateTray() {
     const n = cartCount();
     const active = myOrders.find((o) => ["novo", "preparo", "pronto"].includes(o.status));
+    const hasTray = Boolean(n || active);
+
     if (n) {
       $tray.hidden = false;
       $tray.onclick = traySheet;
@@ -722,7 +740,18 @@
     } else {
       $tray.hidden = true;
     }
-    document.body.classList.toggle("has-tray", !$tray.hidden);
+
+    if ($waiterBtn) {
+      $waiterBtn.hidden = false;
+      if (hasTray) {
+        $waiterBtn.classList.add("compact");
+        $waiterBtn.innerHTML = `${ICON.bell}<span>Garçom</span>`;
+      } else {
+        $waiterBtn.classList.remove("compact");
+        $waiterBtn.innerHTML = `${ICON.bell}<span>Chamar garçom</span>`;
+      }
+    }
+    document.body.classList.toggle("has-tray", hasTray);
   }
 
   /* ---------- arranque ---------- */
@@ -746,6 +775,13 @@
     const initialMesa = activeMesa || mesa || store.get(`cf.mesa.${slug}`, "");
     if (initialMesa) $("mesaLabel").textContent = `· Mesa ${initialMesa}`;
     $("infoBtn").addEventListener("click", infoSheet);
+
+    if ($waiterBtn) {
+      $waiterBtn.addEventListener("click", (e) => {
+        if (e) e.preventDefault();
+        callWaiterSheet();
+      });
+    }
 
     if (!data.dishes.length) {
       $feed.replaceChildren(el("div", { class: "dish" }, [el("div", { class: "empty", text: "O cardápio ainda está vazio. Volta daqui a pouco." })]));
