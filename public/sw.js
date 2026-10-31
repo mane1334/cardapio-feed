@@ -4,8 +4,8 @@
  * - Imagens (/media): cache primeiro. Vídeos e pedidos parciais (Range) passam direto.
  * - Painel e restante API: nunca em cache.
  */
-const VERSION = "cardapio-v7";
-const SHELL = ["/index.html", "/styles.css?v=7", "/themes.css?v=7", "/app.js?v=7", "/icon.svg", "/manifest.webmanifest"];
+const VERSION = "cardapio-v8";
+const SHELL = ["/index.html", "/styles.css?v=8", "/themes.css?v=8", "/app.js?v=8", "/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)));

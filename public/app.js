@@ -95,12 +95,12 @@
   }
 
   const ICON = {
-    heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.500s-8-4.900-8-11A4.500 4.500 0 0 1 12 6.800 4.500 4.500 0 0 1 20 9.500c0 6.100-8 11-8 11z"/></svg>',
-    share: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.500 7.500 12 3l4.500 4.500M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
-    mute: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zm13.600 2 2.400-2.400-1.400-1.400-2.400 2.400-2.400-2.400-1.400 1.400 2.400 2.400-2.400 2.400 1.400 1.400 2.400-2.400 2.400 2.400 1.400-1.400L16.600 12z"/></svg>',
-    sound: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zm13.500 2a4.500 4.500 0 0 0-2.500-4v8a4.500 4.500 0 0 0 2.500-4z"/></svg>',
-    info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>',
-    bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+    heart: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.500s-8-4.900-8-11A4.500 4.500 0 0 1 12 6.800 4.500 4.500 0 0 1 20 9.500c0 6.100-8 11-8 11z"/></svg>',
+    share: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7.500 7.500 12 3l4.500 4.500M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>',
+    mute: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zm13.600 2 2.400-2.400-1.400-1.400-2.400 2.400-2.400-2.400-1.400 1.400 2.400 2.400-2.400 2.400 1.400 1.400 2.400-2.400 2.400 2.400 1.400-1.400L16.600 12z"/></svg>',
+    sound: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4h4l5 4V6L7 10H3zm13.500 2a4.500 4.500 0 0 0-2.500-4v8a4.500 4.500 0 0 0 2.500-4z"/></svg>',
+    info: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
   };
 
   /* ---------- tema ---------- */
@@ -609,6 +609,7 @@
       }
     }
     closeSheet();
+    document.body.classList.add("sheet-open");
     const body = el("div", { class: "body" });
     const sheet = el("section", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": title }, [
       el("div", { class: "grab" }),
@@ -621,6 +622,7 @@
     $sheetRoot.replaceChildren(backdrop, sheet);
     closeSheet = () => {
       document.removeEventListener("keydown", onKey);
+      document.body.classList.remove("sheet-open");
       $sheetRoot.replaceChildren();
       ordersSheetOpen = false;
       closeSheet = () => {};
@@ -732,8 +734,8 @@
         ]);
         if (st.step >= 0) {
           card.append(
-            el("div", { class: "steps" }, [0, 1, 2, 3].map((i) => el("i", { class: i <= st.step ? "on" : "" }))),
-            el("div", { class: "steps-l" }, ["Recebido", "Preparo", "Pronto", "Entregue"].map((t) => el("span", { text: t })))
+            el("div", { class: "steps" }, [0, 1, 2, 3].map((i) => el("i", { class: (i <= st.step ? "on" : "") + (i === st.step ? " active-step" : "") }))),
+            el("div", { class: "steps-l" }, ["Recebido", "Preparo", "Pronto", "Entregue"].map((t, idx) => el("span", { class: idx === st.step ? "active" : "", text: t })))
           );
         }
         if (o.status === "novo" && Date.now() - o.createdAt < 180_000) {
