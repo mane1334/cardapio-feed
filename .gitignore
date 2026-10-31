@@ -4,3 +4,6 @@ storage/
 *.log
 *.corrompido-*
 .DS_Store
+android/.gradle/
+android/build/
+android/app/build/
