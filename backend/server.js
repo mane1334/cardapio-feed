@@ -153,7 +153,7 @@ function createApp(opts = {}) {
   function findRestaurant({ slug, id }) {
     if (id) return D.restaurants.find((r) => r.id === id);
     if (slug) return D.restaurants.find((r) => r.slug === slug);
-    return D.restaurants.length === 1 ? D.restaurants[0] : undefined;
+    return D.restaurants[0];
   }
 
   function newSession(user) {
