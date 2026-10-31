@@ -324,9 +324,6 @@
     article.addEventListener("click", (e) => { if (!e.target.closest("button")) bump(dish.id, "taps"); });
     return article;
   }
-    article.addEventListener("click", (e) => { if (!e.target.closest("button")) bump(dish.id, "taps"); });
-    return article;
-  }
 
   async function shareDish(dish) {
     const url = `${location.origin}/r/${data.restaurant.slug}${mesa ? `?mesa=${mesa}` : ""}#${dish.id}`;
@@ -727,7 +724,6 @@
   function updateTray() {
     const n = cartCount();
     const active = myOrders.find((o) => ["novo", "preparo", "pronto"].includes(o.status));
-    const hasTray = Boolean(n || active);
 
     if (n) {
       $tray.hidden = false;
@@ -740,18 +736,7 @@
     } else {
       $tray.hidden = true;
     }
-
-    if ($waiterBtn) {
-      $waiterBtn.hidden = false;
-      if (hasTray) {
-        $waiterBtn.classList.add("compact");
-        $waiterBtn.innerHTML = `${ICON.bell}<span>Garçom</span>`;
-      } else {
-        $waiterBtn.classList.remove("compact");
-        $waiterBtn.innerHTML = `${ICON.bell}<span>Chamar garçom</span>`;
-      }
-    }
-    document.body.classList.toggle("has-tray", hasTray);
+    document.body.classList.toggle("has-tray", !$tray.hidden);
   }
 
   /* ---------- arranque ---------- */
