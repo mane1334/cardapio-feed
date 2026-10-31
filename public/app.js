@@ -426,6 +426,14 @@
 
   /* ---------- chamar garçom ---------- */
   let waiterCooldown = false;
+  const WAITER_REASONS = [
+    { label: "Atendimento", icon: "🙋" },
+    { label: "Pedir a conta", icon: "🧾" },
+    { label: "Pagar no cartão / POS", icon: "💳" },
+    { label: "Mais água / copos", icon: "💧" },
+    { label: "Talheres / guardanapos", icon: "🍴" },
+    { label: "Limpar a mesa", icon: "🧽" }
+  ];
 
   function callWaiterSheet() {
     openSheet("Chamar garçom", (body) => {
@@ -438,15 +446,44 @@
           el("label", { class: "field" }, [el("span", { text: "Mesa *" }), mesaInput])
         );
       } else {
-        body.append(el("p", { text: `Vais chamar o garçom para a mesa ${currentMesa}.` }));
+        body.append(el("p", { class: "muted", text: `Mesa ${currentMesa} selecionada.` }));
       }
-      const note = el("textarea", { rows: "2", maxlength: "100", placeholder: "Ex: pode trazer a conta, mais água…" });
-      body.append(el("label", { class: "field" }, [el("span", { text: "Mensagem (opcional)" }), note]));
+
+      body.append(el("p", { style: "font-weight:700; margin:12px 0 6px;", text: "O que precisas?" }));
+
+      let selectedReason = WAITER_REASONS[0].label;
+      const optButtons = [];
+
+      const updateConfirmBtn = () => {
+        const mesaPart = currentMesa ? ` · Mesa ${currentMesa}` : "";
+        btn.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} Chamar garçom (${selectedReason})${mesaPart}</span>`;
+      };
+
+      const grid = el("div", { class: "waiter-options-grid" });
+      WAITER_REASONS.forEach((r, idx) => {
+        const optBtn = el("button", {
+          class: "waiter-opt-btn" + (idx === 0 ? " active" : ""),
+          type: "button",
+          onclick: () => {
+            selectedReason = r.label;
+            optButtons.forEach((b) => b.classList.remove("active"));
+            optBtn.classList.add("active");
+            updateConfirmBtn();
+          }
+        }, [
+          el("span", { class: "ico", text: r.icon }),
+          el("span", { text: r.label })
+        ]);
+        optButtons.push(optBtn);
+        grid.append(optBtn);
+      });
+      body.append(grid);
 
       const btn = el("button", {
-        class: "btn", type: "button",
-        html: `<span style="display:inline-flex;align-items:center;gap:8px;justify-content:center">${ICON.bell} ${currentMesa ? `Chamar garçom · Mesa ${currentMesa}` : "Chamar garçom"}</span>`
+        class: "btn", type: "button"
       });
+      updateConfirmBtn();
+
       if (waiterCooldown) {
         btn.disabled = true;
         btn.textContent = "Garçom já chamado";
@@ -465,16 +502,17 @@
           activeMesa = targetMesa;
           store.set(`cf.mesa.${slug}`, targetMesa);
           $("mesaLabel").textContent = `· Mesa ${targetMesa}`;
+          currentMesa = targetMesa;
         }
         btn.disabled = true;
         btn.textContent = "A avisar o garçom…";
         try {
           await api("/api/call-waiter", {
             method: "POST",
-            body: { restaurantId: data.restaurant.id, mesa: targetMesa, note: note ? note.value : "" }
+            body: { restaurantId: data.restaurant.id, mesa: targetMesa, note: selectedReason }
           });
           waiterCooldown = true;
-          toast(`✔ Garçom avisado para a mesa ${targetMesa}! Vem já ter contigo.`);
+          toast(`✔ Garçom avisado (${selectedReason}) para a mesa ${targetMesa}!`);
           if (navigator.vibrate) {
             try { navigator.vibrate([80, 40, 80]); } catch (_) {}
           }

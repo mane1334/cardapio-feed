@@ -234,6 +234,47 @@ body.has-tray { --tray-lift: 62px; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------- Opções de chamar garçom ---------- */
+.waiter-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 10px 0 16px;
+}
+.waiter-opt-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: var(--card-radius);
+  border: 1px solid var(--sheet-line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--sheet-fg);
+  font-weight: 700;
+  font-size: .84rem;
+  line-height: 1.25;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.waiter-opt-btn:active {
+  transform: scale(.96);
+}
+.waiter-opt-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+}
+.waiter-opt-btn .ico {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
 /* ---------- Sheet detalhe do prato ---------- */
 .detail-hero {
   width: calc(100% + 40px); margin: 0 -20px 14px; height: 260px; overflow: hidden; flex: none;
